@@ -1,0 +1,28 @@
+{
+  "name": "uno",
+  "version": "0.0.1",
+  "description": "Uno",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [
+    "uno",
+    "oo",
+    "functional"
+  ],
+  "authors": {
+    "tests": "Ole Ildsgaard Hougaard",
+    "implementation": "Kristian M. P. Dashnaw"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@babel/core": "^7.24.6",
+    "@babel/preset-env": "^7.24.6",
+    "@babel/preset-typescript": "^7.24.6",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^7.0.2"
+  }
+}
