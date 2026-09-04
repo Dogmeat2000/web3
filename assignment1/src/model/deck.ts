@@ -1,4 +1,4 @@
-import {Shuffler, standardShuffler} from "../utils/random_utils";
+import { Shuffler } from "../utils/random_utils";
 
 export const colors: Color[] = ['BLUE', 'RED', 'GREEN', 'YELLOW'];
 const validCardNumbers: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const
@@ -43,13 +43,54 @@ type WildDrawCard = {
 
 // Deck
 export interface Deck {
-    size: number
+    /**
+     * @returns the number of cards present in this deck
+     */
+    get size(): number
+
+    /**
+     * Deals the top most card from this deck, removing this Card from the deck.
+     * @returns a Card if deck has cards. Otherwise, returns undefined
+     */
     deal(): Card | undefined
+
+    /**
+     * Shuffles the deck.
+     * @argument shuffler The shuffler implementation to use for the shuffling operation.
+     */
     shuffle(shuffler: Shuffler<Card>): void
+
+    /**
+     * Filters based on the provided predicate and returns a new Deck containing only the filtered cards.
+     * @returns The filtered Deck
+     */
     filter(pred: (card: Card) => boolean): Deck
+
+    /**
+     * TODO Expand descriptions
+     * @returns The top-most Card in the Deck.
+     */
+    top(): Card
+
+    /**
+     * Adds a Card to the end (top) of the Deck stack
+     */
+    push(card: Card): void
+
+    /**
+     * Removes the top/last Card from the Array
+     */
+    pop(): Card | undefined
+
+    /**
+     * TODO Expand descriptions
+     */
     toMemento(): void // TODO: NOT IMPLEMENTED
 }
 
+/**
+ * TODO Expand descriptions
+ */
 export function hasNumber(card: Card, number: TypedCard<'NUMBERED'>['number']): boolean {
     if(card.type  === 'NUMBERED' || card.type === 'DRAW' || card.type === 'WILD DRAW')
         return card.number === number;
@@ -57,6 +98,9 @@ export function hasNumber(card: Card, number: TypedCard<'NUMBERED'>['number']): 
     return false
 }
 
+/**
+ * TODO Expand descriptions
+ */
 export function hasColor(card: Card, color: Color): boolean {
     if(card.type  === 'NUMBERED' || card.type === 'DRAW' || card.type === 'REVERSE' || card.type === 'SKIP')
         return card.color === color;
@@ -65,26 +109,38 @@ export function hasColor(card: Card, color: Color): boolean {
 }
 
 export class DeckImpl implements Deck {
-    private readonly cards: Card[] = []
+    private readonly _cards: Card[] = []
 
     constructor(cards : Card[] = this.initializeDeck()) {
-        this.cards = [...cards]
+        this._cards = [...cards]
     }
 
     get size(): number {
-        return this.cards.length
+        return this._cards.length
     }
 
     deal(): Card | undefined {
-        return this.cards.pop()
+        return this._cards.pop()
     }
 
     shuffle(shuffler: Shuffler<Card>): void {
-        shuffler(this.cards)
+        shuffler(this._cards)
     }
 
     filter(pred: (card: Card) => boolean): Deck {
-        return new DeckImpl(this.cards.filter(pred))
+        return new DeckImpl(this._cards.filter(pred))
+    }
+
+    top(): Card {
+        return this._cards[this.size-1];
+    }
+
+    pop(): Card | undefined {
+        return this._cards.pop();
+    }
+
+    push(card: Card): void {
+        this._cards.push(card)
     }
 
     toMemento(): void {
@@ -92,7 +148,7 @@ export class DeckImpl implements Deck {
     }
 
     private initializeDeck(): Card[] {
-        // Initialize cards:
+        // Initialize _cards:
         const redCards: Card[] = this.buildColoredCardStack('RED')
         const greenCards: Card[] = this.buildColoredCardStack('GREEN')
         const blueCards: Card[] = this.buildColoredCardStack('BLUE')
@@ -105,22 +161,22 @@ export class DeckImpl implements Deck {
     private buildColoredCardStack(color: Color): Card[] {
         const cards: Card[] = []
 
-        // Create 19 numbered cards of this color:
+        // Create 19 numbered _cards of this color:
         for (const number of validCardNumbers) {
             cards.push({ type: 'NUMBERED', color: color, number: number }) // UNO has one number 0 card pr. color.
 
             if(number != 0)
-                cards.push({ type: 'NUMBERED', color: color, number: number }) // UNO has 2 of each 1-9 cards pr. color.
+                cards.push({ type: 'NUMBERED', color: color, number: number }) // UNO has 2 of each 1-9 _cards pr. color.
         }
 
         for (let i: number = 0; i < 2; i++) {
-            // Create 2 reverse cards:
+            // Create 2 reverse _cards:
             cards.push({ type: 'REVERSE', color: color })
 
-            // Create 2 skip cards:
+            // Create 2 skip _cards:
             cards.push({ type: 'SKIP', color: color })
 
-            // Create 2 draw cards:
+            // Create 2 draw _cards:
             cards.push({ type: 'DRAW', color: color, number: 2})
         }
 
@@ -130,12 +186,12 @@ export class DeckImpl implements Deck {
     private buildWildCardStack(): Card[] {
         const cards: Card[] = []
 
-        // Create 4 wild draw cards:
+        // Create 4 wild draw _cards:
         for (let i: number = 0; i < 4; i++) {
             cards.push({ type: 'WILD DRAW', number: 4 })
         }
 
-        // Create 4 wild cards:
+        // Create 4 wild _cards:
         for (let i: number = 0; i < 4; i++) {
             cards.push({ type: 'WILD' })
         }

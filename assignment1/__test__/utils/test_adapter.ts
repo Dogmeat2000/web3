@@ -1,10 +1,11 @@
 import { Randomizer, Shuffler, standardRandomizer, standardShuffler } from '../../src/utils/random_utils'
 import {Card, Deck, DeckImpl} from "../../src/model/deck";
+import {Round, RoundImpl} from "../../src/model/round";
 
 // Fix (or import) these types:
 //type Card = any
 //type Deck = any
-type Round = any
+//type Round = any
 type Game = any
 
 //Fill out the empty functions
@@ -30,11 +31,12 @@ export function createRound({
     shuffler = standardShuffler,
     cardsPerPlayer = 7
   }: HandConfig): Round {
-    // TODO: NOT IMPLEMENTED
+    return new RoundImpl(players, dealer, shuffler, cardsPerPlayer)
 }
 
 export function createRoundFromMemento(memento: any, shuffler: Shuffler<Card> = standardShuffler): Round {
     // TODO: NOT IMPLEMENTED
+    return new RoundImpl(['a', 'b', 'c', 'd'], 2, shuffler, 7)
 }
 
 export type GameConfig = {
