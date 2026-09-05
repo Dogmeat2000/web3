@@ -49,7 +49,7 @@ export interface Deck {
     get size(): number
 
     /**
-     * Deals the top most card from this deck, removing this Card from the deck.
+     * Deals the bottom most card (i.e. index 0) from this deck, removing this Card from the deck.
      * @returns a Card if deck has cards. Otherwise, returns undefined
      */
     deal(): Card | undefined
@@ -80,7 +80,7 @@ export interface Deck {
     /**
      * Removes the top/last Card from the Array
      */
-    pop(): Card | undefined
+    //pop(): Card | undefined
 
     /**
      * TODO Expand descriptions
@@ -120,7 +120,7 @@ export class DeckImpl implements Deck {
     }
 
     deal(): Card | undefined {
-        return this._cards.pop()
+        return this._cards.shift()
     }
 
     shuffle(shuffler: Shuffler<Card>): void {
@@ -135,9 +135,9 @@ export class DeckImpl implements Deck {
         return this._cards[this.size-1];
     }
 
-    pop(): Card | undefined {
+    /*pop(): Card | undefined {
         return this._cards.pop();
-    }
+    }*/
 
     push(card: Card): void {
         this._cards.push(card)
@@ -155,7 +155,7 @@ export class DeckImpl implements Deck {
         const yellowCards: Card[] = this.buildColoredCardStack('YELLOW')
         const wildCards: Card[] = this.buildWildCardStack()
 
-        return [...redCards, ...blueCards, ...yellowCards, ...greenCards, ...wildCards]
+        return [...redCards, ...greenCards, ...yellowCards, ...blueCards, ...wildCards]
     }
 
     private buildColoredCardStack(color: Color): Card[] {

@@ -114,10 +114,8 @@ describe("Deck methods", () => {
     })
     it("returns all cards in order", () => {
         const deckSize = deck.size
-        let orderedCards: Readonly<deck.Card[]> = [...shuffledCards].reverse()
-
         for(let i = 0; i < deckSize; i++) {
-        expect(deck.deal()).toEqual(orderedCards[i])
+        expect(deck.deal()).toEqual(shuffledCards[i])
         }
     })
     it("returns undefined if the deck is empty", () => {

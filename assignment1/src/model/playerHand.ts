@@ -28,7 +28,5 @@ export class PlayerHandImpl implements PlayerHand {
 
         if (deletedItems.length === 0)
             throw new Error(`Cannot remove card ${card}. No cards found on hand.`)
-        else
-            console.debug(`Removed 1 card from players's hand. ${this.cards.length} cards left on hand`)
     }
 }
