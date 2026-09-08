@@ -317,8 +317,8 @@ describe("Drawing a card", () => {
     })
   })
 
-    // TODO: Restore these memento tests when memento support has been implemented
-  /*describe("drawing the last card", () => {
+
+  describe("drawing the last card", () => {
     const memento = {
       players: ['a', 'b', 'c', 'd'],
       hands: [
@@ -357,10 +357,10 @@ describe("Drawing a card", () => {
     it("leaves the cards removed from the discard pile in the draw pile", () => {
       expect(is({type: 'NUMBERED', color: 'BLUE', number: 8})(round.drawPile().top())).toBeTruthy()
     })
-  })*/
+  })
 
-    // TODO: Restore these memento tests when memento support has been implemented
-  /*describe("when drawing because of a card", () => {
+
+  describe("when drawing because of a card", () => {
     const memento = {
       players: ['a', 'b', 'c', 'd'],
       hands: [
@@ -381,7 +381,7 @@ describe("Drawing a card", () => {
     expect(round.playerHand(2).length).toEqual(3)
     expect(round.discardPile().size).toEqual(1)
     expect(round.drawPile().size).toEqual(1)
-  })*/
+  })
 })
 
 describe("special 2-player rules", () => {

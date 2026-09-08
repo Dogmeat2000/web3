@@ -11,12 +11,13 @@ export class PlayerImpl implements Player {
     private readonly _playerId: number
     private readonly _playerName: string
     private readonly _hand: PlayerHand
-    private _hasSaidUno: boolean = false
+    private _hasSaidUno: boolean
 
-    constructor(playerId: number, playerName: string) {
+    constructor(playerId: number, playerName: string, playerHand: PlayerHand = new PlayerHandImpl([]), hasSaidUno: boolean = false) {
         this._playerId = playerId
         this._playerName = playerName
-        this._hand = new PlayerHandImpl([])
+        this._hand = playerHand
+        this._hasSaidUno = hasSaidUno
     }
 
     get playerId(): number  {

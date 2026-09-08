@@ -3,7 +3,7 @@ import { DeckMemento, toCard } from "./deck.memento";
 import { DeckImpl } from "./deck.impl";
 
 export const validColors: Color[] = ['BLUE', 'RED', 'GREEN', 'YELLOW'] as const
-export const validCardNumbers: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const
+export const validCardNumbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const
 
 export type Color = 'BLUE' | 'RED' | 'GREEN' | 'YELLOW'
 export type Type = Card["type"]
@@ -70,7 +70,7 @@ export interface Deck {
     /**
      * @returns The top-most Card in the Deck.
      */
-    top(): Card
+    top(): Card | undefined
 
     /**
      * Adds a Card to the end (top) of the Deck stack

@@ -1,7 +1,9 @@
 import { Randomizer, Shuffler, standardRandomizer, standardShuffler } from '../../src/utils/random_utils'
 import { Card, Deck, fromMemento} from "../../src/model/deck";
 import { DeckImpl } from "../../src/model/deck.impl";
-import { Round, RoundImpl} from "../../src/model/round";
+import { Round } from "../../src/model/round";
+import { RoundImpl } from "../../src/model/round.impl";
+import {toRound} from "../../src/model/round.memento";
 
 // Fix (or import) these types:
 type Game = any
@@ -31,8 +33,7 @@ export function createRound({
 }
 
 export function createRoundFromMemento(memento: any, shuffler: Shuffler<Card> = standardShuffler): Round {
-    // TODO: NOT IMPLEMENTED
-    return new RoundImpl(['a', 'b', 'c', 'd'], 2, shuffler, 7)
+    return toRound(memento, shuffler)
 }
 
 export type GameConfig = {

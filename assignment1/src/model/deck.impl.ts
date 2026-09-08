@@ -25,8 +25,8 @@ export class DeckImpl implements Deck {
         return new DeckImpl(this._cards.filter(pred))
     }
 
-    top(): Card {
-        return this._cards[this.size-1];
+    top(): Card | undefined {
+        return this._cards.at(-1);
     }
 
     push(card: Card): void {
