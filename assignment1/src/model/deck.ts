@@ -1,7 +1,10 @@
 import { Shuffler } from "../utils/random_utils";
+import { DeckMemento, toCard } from "./deck.memento";
+import { DeckImpl } from "./deck.impl";
 
-export const colors: Color[] = ['BLUE', 'RED', 'GREEN', 'YELLOW'];
-const validCardNumbers: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const
+export const validColors: Color[] = ['BLUE', 'RED', 'GREEN', 'YELLOW'] as const
+export const validCardNumbers: number[] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const
+
 export type Color = 'BLUE' | 'RED' | 'GREEN' | 'YELLOW'
 export type Type = Card["type"]
 export type TypedCard<T extends Type> = Extract<Card, { type: T }>
@@ -19,7 +22,6 @@ type NumberedCard = {
 type DrawCard = {
     type: 'DRAW'
     color: Color
-    number: 2
 }
 
 type ReverseCard = {
@@ -38,7 +40,6 @@ type WildCard = {
 
 type WildDrawCard = {
     type: 'WILD DRAW'
-    number: 4
 }
 
 // Deck
@@ -67,7 +68,6 @@ export interface Deck {
     filter(pred: (card: Card) => boolean): Deck
 
     /**
-     * TODO Expand descriptions
      * @returns The top-most Card in the Deck.
      */
     top(): Card
@@ -78,28 +78,30 @@ export interface Deck {
     push(card: Card): void
 
     /**
-     * Removes the top/last Card from the Array
+     * Converts this deck into a Memento type.
+     * @returns The memento converted deck as a DeckMemento type.
      */
-    //pop(): Card | undefined
-
-    /**
-     * TODO Expand descriptions
-     */
-    toMemento(): void // TODO: NOT IMPLEMENTED
+    toMemento(): DeckMemento
 }
 
 /**
- * TODO Expand descriptions
+ * Checks if the provided card has the specified number.
+ * @param card The card to check
+ * @param number The number to check for on this card
+ * @returns True the card has the provided number. Otherwise, False.
  */
 export function hasNumber(card: Card, number: TypedCard<'NUMBERED'>['number']): boolean {
-    if(card.type  === 'NUMBERED' || card.type === 'DRAW' || card.type === 'WILD DRAW')
+    if(card.type  === 'NUMBERED')
         return card.number === number;
 
     return false
 }
 
 /**
- * TODO Expand descriptions
+ * Checks if the provided card has the specified color.
+ * @param card The card to check
+ * @param color The color to check for on this card
+ * @returns True the card has the provided number. Otherwise, False.
  */
 export function hasColor(card: Card, color: Color): boolean {
     if(card.type  === 'NUMBERED' || card.type === 'DRAW' || card.type === 'REVERSE' || card.type === 'SKIP')
@@ -108,97 +110,11 @@ export function hasColor(card: Card, color: Color): boolean {
     return false
 }
 
-export class DeckImpl implements Deck {
-    private readonly _cards: Card[] = []
-
-    constructor(cards : Card[] = this.initializeDeck()) {
-        this._cards = [...cards]
-    }
-
-    get size(): number {
-        return this._cards.length
-    }
-
-    deal(): Card | undefined {
-        return this._cards.shift()
-    }
-
-    shuffle(shuffler: Shuffler<Card>): void {
-        shuffler(this._cards)
-    }
-
-    filter(pred: (card: Card) => boolean): Deck {
-        return new DeckImpl(this._cards.filter(pred))
-    }
-
-    top(): Card {
-        return this._cards[this.size-1];
-    }
-
-    /*pop(): Card | undefined {
-        return this._cards.pop();
-    }*/
-
-    push(card: Card): void {
-        this._cards.push(card)
-    }
-
-    toMemento(): void {
-        // TODO: NOT IMPLEMENTED
-    }
-
-    private initializeDeck(): Card[] {
-        // Initialize _cards:
-        const redCards: Card[] = this.buildColoredCardStack('RED')
-        const greenCards: Card[] = this.buildColoredCardStack('GREEN')
-        const blueCards: Card[] = this.buildColoredCardStack('BLUE')
-        const yellowCards: Card[] = this.buildColoredCardStack('YELLOW')
-        const wildCards: Card[] = this.buildWildCardStack()
-
-        return [...redCards, ...greenCards, ...yellowCards, ...blueCards, ...wildCards]
-    }
-
-    private buildColoredCardStack(color: Color): Card[] {
-        const cards: Card[] = []
-
-        // Create 19 numbered _cards of this color:
-        for (const number of validCardNumbers) {
-            cards.push({ type: 'NUMBERED', color: color, number: number }) // UNO has one number 0 card pr. color.
-
-            if(number != 0)
-                cards.push({ type: 'NUMBERED', color: color, number: number }) // UNO has 2 of each 1-9 _cards pr. color.
-        }
-
-        for (let i: number = 0; i < 2; i++) {
-            // Create 2 reverse _cards:
-            cards.push({ type: 'REVERSE', color: color })
-
-            // Create 2 skip _cards:
-            cards.push({ type: 'SKIP', color: color })
-
-            // Create 2 draw _cards:
-            cards.push({ type: 'DRAW', color: color, number: 2})
-        }
-
-        return cards
-    }
-
-    private buildWildCardStack(): Card[] {
-        const cards: Card[] = []
-
-        // Create 4 wild draw _cards:
-        for (let i: number = 0; i < 4; i++) {
-            cards.push({ type: 'WILD DRAW', number: 4 })
-        }
-
-        // Create 4 wild _cards:
-        for (let i: number = 0; i < 4; i++) {
-            cards.push({ type: 'WILD' })
-        }
-
-        return cards
-    }
+/**
+ * Creates a new Deck object from the specified memento.
+ * @param memento A memento containing the serialized deck information.
+ * @returns The
+ * */
+export function fromMemento(memento: DeckMemento): Deck {
+    return new DeckImpl(memento.map(toCard))
 }
-
-new DeckImpl()
-

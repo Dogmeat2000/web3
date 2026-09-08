@@ -1,6 +1,7 @@
-import {Card, Color, Deck, DeckImpl} from "./deck";
-import {Shuffler} from "../utils/random_utils";
-import {Player, PlayerImpl} from "./player";
+import { Card, Color, Deck } from "./deck";
+import { DeckImpl } from "./deck.impl";
+import { Shuffler} from "../utils/random_utils";
+import { Player, PlayerImpl } from "./player";
 
 export interface Round {
     readonly playerCount: number
@@ -60,12 +61,32 @@ export interface Round {
     /**
      * TODO ADD DESCRIPTION
      */
-    //catchUnoFailure({ number: number, accused: number }): void
+    sayUno(playerId: number): void
 
     /**
      * TODO ADD DESCRIPTION
      */
-    sayUno(playerId: number): void
+    catchUnoFailure(players: { accuser: number, accused: number }): boolean
+
+    /**
+     * TODO ADD DESCRIPTION
+     */
+    hasEnded(): boolean
+
+    /**
+     * @returns The winning player's id in this round, if any. Otherwise, undefined.
+     */
+    winner(): number | undefined
+
+    /**
+     * @returns The score that the winning player gained in this round. Undefined, if the round has not ended yet.
+     */
+    score(): number | undefined
+
+    /**
+     * TODO ADD DESCRIPTION
+     */
+    onEnd(callback: (event: { winner: number }) => void): void
 }
 
 export class RoundImpl implements Round {
@@ -233,12 +254,40 @@ export class RoundImpl implements Round {
             this.nextPlayer()
     }
 
-    /*catchUnoFailure({accuser: number, accused}: { accuser: any; accused: any }): void {
-        //TODO: NOT IMPLEMENTED
-    }*/
-
     sayUno(playerId: number): void {
         //TODO: NOT IMPLEMENTED
+    }
+
+    catchUnoFailure(players: { accuser: number; accused: number }): boolean {
+        const accusedPlayer: Player = this._players[players.accused]
+        const accusingPlayer: Player = this._players[players.accuser]
+
+        // Game Rule: If a player fails to announce 'UNO' while only having 1 card on hand (in their turn), they can be caught by the next player:
+        if(!accusedPlayer.hasSaidUno && accusedPlayer.hand.cards.length === 1){
+            // TODO: Missing more implementation details here
+            return true
+        }
+
+        return false;
+    }
+
+    hasEnded(): boolean {
+        //TODO: NOT IMPLEMENTED
+        return false;
+    }
+
+    onEnd(callback: (event: { winner: number }) => void): void {
+        //TODO: NOT IMPLEMENTED
+    }
+
+    score(): number | undefined {
+        //TODO: NOT IMPLEMENTED
+        return undefined;
+    }
+
+    winner(): number | undefined {
+        //TODO: NOT IMPLEMENTED
+        return undefined;
     }
 
     /**

@@ -1,21 +1,17 @@
 import { Randomizer, Shuffler, standardRandomizer, standardShuffler } from '../../src/utils/random_utils'
-import {Card, Deck, DeckImpl} from "../../src/model/deck";
-import {Round, RoundImpl} from "../../src/model/round";
+import { Card, Deck, fromMemento} from "../../src/model/deck";
+import { DeckImpl } from "../../src/model/deck.impl";
+import { Round, RoundImpl} from "../../src/model/round";
 
 // Fix (or import) these types:
-//type Card = any
-//type Deck = any
-//type Round = any
 type Game = any
 
-//Fill out the empty functions
 export function createInitialDeck(): Deck {
     return new DeckImpl()
 }
 
 export function createDeckFromMemento(cards: Record<string, string | number>[]): Deck {
-    // TODO: NOT IMPLEMENTED
-    return new DeckImpl()
+    return fromMemento(cards)
 }
 
 export type HandConfig = {

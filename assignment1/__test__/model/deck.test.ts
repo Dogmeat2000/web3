@@ -44,11 +44,11 @@ describe("Initial deck", () => {
     }
   })
   it("contains numbered cards of every legal number and color", () => {
-    for(let color of deck.colors) {
+    for(let color of deck.validColors) {
       expect(initialDeck.filter(is({number: 0, color})).size).toBe(1)
     }
   for(let number = 1; number < 10; number++) {
-      for(let color of deck.colors) {
+      for(let color of deck.validColors) {
         expect(initialDeck.filter(is({number, color})).size).toBe(2)
       }
     }
@@ -57,7 +57,7 @@ describe("Initial deck", () => {
     expect(initialDeck.filter(is({type: 'SKIP'})).size).toEqual(8)
   })
   it("contains 2 skip cards of each color", () => {
-    for(let color of deck.colors) {
+    for(let color of deck.validColors) {
       expect(initialDeck.filter(is({type: 'SKIP', color})).size).toBe(2)
     }
   })
@@ -65,7 +65,7 @@ describe("Initial deck", () => {
     expect(initialDeck.filter(is({type: 'REVERSE'})).size).toEqual(8)
   })
   it("contains 2 reverse cards of each color", () => {
-    for(let color of deck.colors) {
+    for(let color of deck.validColors) {
       expect(initialDeck.filter(is({type: 'REVERSE', color})).size).toBe(2)
     }
   })
@@ -73,7 +73,7 @@ describe("Initial deck", () => {
     expect(initialDeck.filter(is({type: 'DRAW'})).size).toEqual(8)
   })
   it("contains 2 draw cards of each color", () => {
-    for(let color of deck.colors) {
+    for(let color of deck.validColors) {
       expect(initialDeck.filter(is({type:'DRAW',color})).size).toBe(2)
     }
   })
@@ -127,8 +127,7 @@ describe("Deck methods", () => {
   })
 })
 
-// TODO: Reenable when memento has been implemented
-/*describe('fromMemento', () => {
+describe('fromMemento', () => {
   describe('from valid Memnot', () => {
     it('returns a deck with all cards in order', () => {
       const cards: Record<string, string | number>[] = [
@@ -192,10 +191,9 @@ describe("Deck methods", () => {
       expect(() => createDeckFromMemento([{type: 'DRAW'}])).toThrowError()
     })
   })
-})*/
+})
 
-// TODO: Reenable when memento has been implemented
-/*describe("toMemento", () => {
+describe("toMemento", () => {
   it("Returns the Memento used to create it", () => {
       const cards: Record<string, string | number>[] = [
         { type: 'NUMBERED', color: 'BLUE', number: 7 },
@@ -208,4 +206,4 @@ describe("Deck methods", () => {
       const created = createDeckFromMemento(cards)
       expect(created.toMemento()).toEqual(cards)
   })
-})*/
+})
