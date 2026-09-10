@@ -6,6 +6,7 @@ import { RoundImpl } from "../../src/model/round.impl";
 import {toRound} from "../../src/model/round.memento";
 import {Game} from "../../src/model/uno";
 import {GameImpl} from "../../src/model/uno.impl";
+import {toGame} from "../../src/model/uno.memento";
 
 export function createInitialDeck(): Deck {
     return new DeckImpl()
@@ -48,5 +49,5 @@ export function createGame(props: Partial<GameConfig>): Game {
 }
 
 export function createGameFromMemento(memento: any, randomizer: Randomizer = standardRandomizer, shuffler: Shuffler<Card> = standardShuffler): Game {
-    // TODO: NOT IMPLEMENTED
+    return toGame(memento, shuffler, randomizer)
 }

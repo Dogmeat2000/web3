@@ -81,7 +81,7 @@ describe("Playing a round", () => {
       playerInTurn: 0
     },
   }
-  /*
+
   describe("while the round is still running", () => {
     const game = createGameFromMemento(memento) 
     const round = game.currentRound()!
@@ -98,8 +98,8 @@ describe("Playing a round", () => {
     test("the round is the same", () => {
       expect(game.currentRound()).toBe(round)
     })
-  })*/
-  /*
+  })
+
   describe("when the round is over", () => {
     const game = createGameFromMemento(memento) 
     const round = game.currentRound()!
@@ -122,9 +122,9 @@ describe("Playing a round", () => {
     test("a new round is started", () => {
       expect(game.currentRound()).not.toBe(round)
     })
-  })*/
+  })
 })
-/*
+
 describe("ending the second round", () => {
   const memento: GameMemento = {
     cardsPerPlayer: 1,
@@ -164,8 +164,8 @@ describe("ending the second round", () => {
   test("a new round is started", () => {
     expect(game.currentRound()).not.toBe(round2)
   })
-})*/
-/*
+})
+
 describe("ending the third round", () => {
   const memento: GameMemento = {
     cardsPerPlayer: 1,
@@ -205,4 +205,4 @@ describe("ending the third round", () => {
   test("a new round is not started", () => {
     expect(game.currentRound()).toBeUndefined()
   })
-})  */
+})

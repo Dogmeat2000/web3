@@ -1,17 +1,20 @@
 import { Game } from "./uno";
 import { Round } from "./round";
-import {Randomizer, Shuffler, standardRandomizer, standardShuffler} from "../utils/random_utils";
+import { Randomizer, Shuffler, standardRandomizer, standardShuffler } from "../utils/random_utils";
 import { Card } from "./deck";
 import { RoundImpl } from "./round.impl";
 import { GameMemento } from "./uno.memento";
-import { Player, PlayerImpl } from "./player";
 
 export class GameImpl implements Game {
-    readonly playerCount: number;
-    readonly targetScore: number;
+    playerCount: number;
+    targetScore: number;
 
-    private _playedRounds: Round[] = [] // Current round will always be at the end of the Array (i.e. -1)
-    private _players: Player[] = []
+    private _currentRound: Round | undefined
+    private _players: Record<number, string> = {}
+    private _scores: Record<number, number> = {}
+    private _randomizer: Randomizer
+    private _shuffler: Shuffler<Card>
+    private _cardsPerPlayer: number
 
 
     constructor(players: string[] = ['A', 'B'], targetScore: number = 500, randomizer: Randomizer = standardRandomizer, shuffler: Shuffler<Card> = standardShuffler, cardsPerPlayer: number = 7){
@@ -28,14 +31,17 @@ export class GameImpl implements Game {
             throw new Error("Invalid cardsPerPlayer. Must be larger than 0.")
 
         for (let i = 0; i < players.length; i++) {
-            this._players.push(new PlayerImpl(i, players[i]))
+            this._players[i] = players[i]
+            this._scores[i] = 0
         }
 
-        const firstRound = new RoundImpl(players, randomizer(players.length), shuffler, cardsPerPlayer, true)
-        this._playedRounds.push(firstRound)
-
-        this.playerCount = firstRound.playerCount
+        this.playerCount = players.length
         this.targetScore = targetScore
+        this._randomizer = randomizer
+        this._shuffler = shuffler
+        this._cardsPerPlayer = cardsPerPlayer
+
+        this._currentRound = this.createNewRound()
     }
 
     currentRound(): Round | undefined {
@@ -44,28 +50,53 @@ export class GameImpl implements Game {
             return undefined
 
         // Game Logic: Current round is always the Round at the end of the playedRounds array.
-        return this._playedRounds.at(-1)!;
+        return this._currentRound;
     }
 
     player(playerId: number): string {
         if(playerId >= 0 && playerId < this.playerCount)
-            return this._players[playerId].playerName
+            return this._players[playerId]
         else
             throw new Error("PlayerId is invalid")
     }
 
-    score(playerId: number): number {
-        //TODO: NOT IMPLEMENTED
-        return 0;
+    score(playerId: number): number | undefined {
+        if(playerId >= 0 && playerId < this.playerCount)
+            return this._scores[playerId]
+        return undefined;
     }
 
     toMemento(): GameMemento {
-        //TODO: NOT IMPLEMENTED
-        return undefined;
+        return {
+            players: Object.values(this._players),
+            currentRound: this._currentRound?.toMemento(),
+            targetScore: this.targetScore,
+            scores: Object.values(this._scores),
+            cardsPerPlayer: this._cardsPerPlayer
+        }
     }
 
     winner(): number | undefined {
-        //TODO: NOT IMPLEMENTED
+        for (const [key] of Object.entries(this._players)) {
+            const playerId: number = Number(key)
+            if(this._scores[playerId] >= this.targetScore)
+                return playerId
+        }
+
         return undefined;
+    }
+
+    modifyGameState(players: Record<number, string>,
+                    scores: Record<number, number>,
+                    targetScore: number,
+                    currentRound: Round | undefined): void {
+        this._players = players
+        this._scores = scores
+        this.targetScore = targetScore
+        this._currentRound = currentRound
+    }
+
+    private createNewRound(): Round {
+        return new RoundImpl(Object.values(this._players), this._randomizer(this.playerCount), this._shuffler, this._cardsPerPlayer, true)
     }
 }
