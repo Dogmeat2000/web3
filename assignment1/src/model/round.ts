@@ -90,7 +90,7 @@ export interface Round {
     score(): number | undefined
 
     /**
-     * TODO ADD DESCRIPTION
+     * Callback function that publishes and event containing the winner, when the round ends.
      */
     onEnd(callback: (event: { winner: number }) => void): void
 

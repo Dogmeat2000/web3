@@ -21,6 +21,8 @@ export class RoundImpl implements Round {
     private _noOfCardsPlayerMustDraw: number = 1        // Determines how many cards a player must draw, if they can not legally play any of their cards on their turn
     private _skipNextPlayer: boolean = false            // Determines whether to skip next player, or not.
 
+    private _endCallbacks: ((event: { winner: number}) => void)[] = []
+
     /**
      * Constructs a new Round object, prepared with the initial round game logic setup. Ready to start the Round.
      * @param playerNames A list of player names
@@ -97,7 +99,7 @@ export class RoundImpl implements Round {
     }
 
     player(playerId: number): string | undefined {
-        if(playerId < 0 || playerId >= this._players.length)
+        if(playerId < 0 || playerId >= this.playerCount)
             throw new Error("Provided PlayerId is outside of index bounds.")
 
         const player : Player | undefined  = this._players.find(p => p.playerId === playerId)
@@ -123,7 +125,7 @@ export class RoundImpl implements Round {
 
     play(cardIndex: number, namedColor?: Color): Card {
         // Game Rule: Cannot play if round has already ended
-        if(this.winner() !== undefined)
+        if(this.hasEnded())
             throw new Error(`Cannot play. Round has already ended. Winner is: ${this._players.at(this.winner()!)?.playerName}`)
 
         const playedCard: Card = this._activePlayer.hand.cards[cardIndex]
@@ -143,15 +145,22 @@ export class RoundImpl implements Round {
 
             // Game Rule: Turn moves to the next player
             this.nextPlayer()
+
+            // Game Logic: Evaluate if round ended here, with a winner:
+            const winner = this.winner()
+            if( winner !== undefined) {
+                this.endRound(winner)
+            }
+
+            return playedCard
+
         } else {
             throw new Error("Can't play card")
         }
-
-        return playedCard
     }
 
     playerInTurn(): number | undefined {
-        if ( this.winner() !== undefined )
+        if (this.hasEnded())
             return undefined
 
         return this._activePlayer.playerId;
@@ -162,7 +171,7 @@ export class RoundImpl implements Round {
             return false
 
         // Game Rule: Cannot play if the round has ended.
-        if(this.winner() !== undefined)
+        if(this.hasEnded())
             return false
 
         const card: Card = this._activePlayer.hand.cards[cardIndex]
@@ -179,7 +188,7 @@ export class RoundImpl implements Round {
 
     draw(): void {
         // Game Rule: Cannot draw if round has already ended
-        if(this.winner() !== undefined)
+        if(this.hasEnded())
             throw new Error(`Cannot draw. Round has already ended. Winner is: ${this._players.at(this.winner()!)?.playerName}`)
 
         // Game Rule: Cannot draw cards, if player already drew cards in this turn:
@@ -191,6 +200,10 @@ export class RoundImpl implements Round {
             throw new Error("Cannot draw while holding a playable card")
         }
 
+        this.drawCards()
+    }
+
+    private drawCards(): void {
         let cardsDrawn: number = 0;
         let lastDrawnCard: Card | undefined
         while(this._noOfCardsPlayerMustDraw > 0) {
@@ -219,7 +232,7 @@ export class RoundImpl implements Round {
 
     sayUno(playerId: number): void {
         // Game Rule: Cannot say 'UNO' if round has already ended
-        if(this.winner() !== undefined)
+        if(this.hasEnded())
             throw new Error(`Cannot say UNO. Round has already ended. Winner is: ${this._players.at(this.winner()!)?.playerName}`)
 
         if(playerId < 0 || playerId >= this.playerCount)
@@ -286,12 +299,43 @@ export class RoundImpl implements Round {
     }
 
     onEnd(callback: (event: { winner: number }) => void): void {
-        //TODO: NOT IMPLEMENTED
+        this._endCallbacks.push(callback)
+    }
+
+    private endRound(winner: number): void {
+        for (const callback of this._endCallbacks)
+            callback({ winner})
     }
 
     score(): number | undefined {
-        //TODO: NOT IMPLEMENTED
-        return undefined;
+        // Game Logic: There can be no score before there is a winner and the round has ended
+        if(!this.hasEnded())
+            return undefined
+
+        let score: number = 0
+
+        for (const player of this._players) {
+            for (const card of player.hand.cards) {
+                switch(card.type){
+                    case 'NUMBERED':
+                        score += card.number
+                        break
+                    case 'REVERSE':
+                    case "SKIP":
+                    case 'DRAW':
+                        score += 20
+                        break
+                    case 'WILD':
+                    case 'WILD DRAW':
+                        score += 50
+                        break
+                    default:
+                        break
+                }
+            }
+        }
+
+        return score;
     }
 
     /**
@@ -349,7 +393,7 @@ export class RoundImpl implements Round {
                 throw new Error("Multiple empty hands found. Only 1 hand may be empty!")
             }
 
-            for (let i = 0; i < this._players.length; i++) {
+            for (let i = 0; i < this.playerCount; i++) {
                 const playerName: string = this._players[i].playerName;
                 const playerId: number = this._players[i].playerId;
                 const hasSaidUno: boolean = this._players[i].hasSaidUno;
@@ -386,7 +430,7 @@ export class RoundImpl implements Round {
 
         if(playerInTurn !== undefined) {
             // Game Rule: Active player must be one of the current players in this Round.
-            if(playerInTurn >= this._players.length) {
+            if(playerInTurn >= this.playerCount) {
                 this.rollbackModifications(oldPlayers, oldDrawPileDeck, oldDiscardPileDeck, oldActiveColor, oldPlayPassDirection, oldActivePlayer.playerId)
                 throw new Error("Invalid active player. Active player must be one of the current players in this round.")
             }
@@ -396,7 +440,7 @@ export class RoundImpl implements Round {
 
     private rollbackModifications(players?: Player[], drawPile?: Deck, discardPile?: Deck, currentColor?: Color, currentDirection?: 'clockwise' | 'counterclockwise', playerInTurn?: number): void {
         if(players !== undefined) {
-            for (let i = 0; i < this._players.length; i++) {
+            for (let i = 0; i < this.playerCount; i++) {
                 this._players[i] = new PlayerImpl(
                     this._players[i].playerId,
                     this._players[i].playerName,
@@ -466,9 +510,9 @@ export class RoundImpl implements Round {
      */
     private nextPlayer(): void {
         if(this._playPassDirection === 'counterclockwise') {
-            this._activePlayer = this._players[(this._activePlayer.playerId + this._players.length - 1) % this._players.length]
+            this._activePlayer = this._players[(this._activePlayer.playerId + this.playerCount - 1) % this.playerCount]
         } else {
-            this._activePlayer = this._players[(this._activePlayer.playerId + this._players.length + 1) % this._players.length]
+            this._activePlayer = this._players[(this._activePlayer.playerId + this.playerCount + 1) % this.playerCount]
         }
 
         // Evaluate if the last player, played a card that skips or forfeits this players turn
@@ -477,7 +521,7 @@ export class RoundImpl implements Round {
 
             // Game Rule: Skipped player must draw cards, if last player played a DRAW 2 or WILD DRAW 4 card
             if(this._noOfCardsPlayerMustDraw > 1)
-                this.draw()
+                this.drawCards()
 
             this.nextPlayer()
         } else {
@@ -557,7 +601,7 @@ export class RoundImpl implements Round {
                 // Apply Special Card effects
                 if(applySpecialEffects && sameColor) {
                     // Game Rule: Reverses the direction of play, when more than 2 players:
-                    if(this._players.length > 2) {
+                    if(this.playerCount > 2) {
                         this.togglePlayDirection();
                     } else {
                         // Game Rule: Skip the next player, if there are only 2 players.
