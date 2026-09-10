@@ -122,6 +122,10 @@ export class RoundImpl implements Round {
     }
 
     play(cardIndex: number, namedColor?: Color): Card {
+        // Game Rule: Cannot play if round has already ended
+        if(this.winner() !== undefined)
+            throw new Error(`Cannot play. Round has already ended. Winner is: ${this._players.at(this.winner()!)?.playerName}`)
+
         const playedCard: Card = this._activePlayer.hand.cards[cardIndex]
 
         if('color' in playedCard) {
@@ -157,19 +161,31 @@ export class RoundImpl implements Round {
         if(cardIndex > this._activePlayer.hand.cards.length-1 || cardIndex < 0)
             return false
 
+        // Game Rule: Cannot play if the round has ended.
+        if(this.winner() !== undefined)
+            return false
+
         const card: Card = this._activePlayer.hand.cards[cardIndex]
         return this.playCard(card, false)
     }
 
     canPlayAny(): boolean {
-        for (const card of this._activePlayer.hand.cards) {
-            if(this.playCard(card, false))
+        for (let i = 0; i < this._activePlayer.hand.cards.length; i++) {
+            if(this.canPlay(i))
                 return true
         }
         return false;
     }
 
     draw(): void {
+        // Game Rule: Cannot draw if round has already ended
+        if(this.winner() !== undefined)
+            throw new Error(`Cannot draw. Round has already ended. Winner is: ${this._players.at(this.winner()!)?.playerName}`)
+
+        // Game Rule: Cannot draw cards, if player already drew cards in this turn:
+        if(this._activePlayer.hasDrawnCardInTurn)
+            throw new Error(`Cannot draw. Player has already drawn cards in this turn. Current payer is is: ${this._activePlayer.playerName}`)
+
         // Game Rule: Players must play any playable cards. Draws can only be made if no playable card is on hand, or a special card forced the draw.
         if(this._noOfCardsPlayerMustDraw === 1 && this.canPlayAny()) {
             throw new Error("Cannot draw while holding a playable card")
@@ -188,6 +204,7 @@ export class RoundImpl implements Round {
             cardsDrawn++
         }
         this._noOfCardsPlayerMustDraw = 1
+        this._activePlayer.hasSaidUno = false // Resets 'UNO' declaration for this player, whenever new cards are drawn.
 
         // Game Rule: Replenish draw pile, if the last card we removed above, was the last card in the draw pile.
         if(this._drawPileDeck.size === 0)
@@ -196,19 +213,68 @@ export class RoundImpl implements Round {
         //Game Rule: Player must immediately play a drawn card, if that card can legally be played:
         if(cardsDrawn === 1 && !this.playCard(lastDrawnCard!, false))
             this.nextPlayer()
+        else
+            this._activePlayer.hasDrawnCardInTurn = true
     }
 
     sayUno(playerId: number): void {
-        //TODO: NOT IMPLEMENTED
+        // Game Rule: Cannot say 'UNO' if round has already ended
+        if(this.winner() !== undefined)
+            throw new Error(`Cannot say UNO. Round has already ended. Winner is: ${this._players.at(this.winner()!)?.playerName}`)
+
+        if(playerId < 0 || playerId >= this.playerCount)
+            throw new Error("Invalid playerId.")
+
+        // Game Rule: Cannot say 'UNO' if player has more than 2 cards on hand:
+        if(this._players[playerId].hand.cards.length > 2)
+            throw new Error(`Cannot say UNO when you have more than 2 cards on hand.`)
+
+        console.log(`Whose turn is it? ${this._activePlayer.playerName}`)
+
+        // Game Rule: Cannot say 'UNO' if next player has drawn cards, or has played his/her card:
+        const step = this._playPassDirection === 'counterclockwise' ? -1 : 1
+        const nextAfterPlayer: number = (playerId + step + this.playerCount) % this.playerCount
+        const isOwnTurn: boolean = this._activePlayer.playerId === playerId
+        const isNextInTurn: boolean = this._activePlayer.playerId === nextAfterPlayer
+
+        if(!isOwnTurn && !isNextInTurn)
+            throw new Error(`Cannot say UNO. It is not your turn`)
+
+        if(isNextInTurn && this._activePlayer.hasDrawnCardInTurn)
+            throw new Error(`Cannot say UNO. Next player has already drawn or played a card`)
+
+        this._players[playerId].hasSaidUno = true
     }
 
     catchUnoFailure(players: { accuser: number; accused: number }): boolean {
+        if(players.accuser < 0 || players.accuser >= this.playerCount)
+            throw new Error("Invalid playerId for accuser.")
+
+        if(players.accused < 0 || players.accused >= this.playerCount)
+            throw new Error("Invalid playerId for accused.")
+
+        // Game Rule: If next player has already played, a player cannot be caught for forgetting to say 'UNO'.
+        const step = this._playPassDirection === 'counterclockwise' ? -1 : 1
+        const nextAfterPlayer: number = (players.accused + step + this.playerCount) % this.playerCount
+        const isNextInTurn: boolean = this._activePlayer.playerId === nextAfterPlayer
+
+        if(!isNextInTurn)
+            return false
+
+        // Game Rule : If next player has already drawn, the previous player can no longer be caught.
+        if(this._activePlayer.hasDrawnCardInTurn)
+            return false
+
         const accusedPlayer: Player = this._players[players.accused]
         const accusingPlayer: Player = this._players[players.accuser]
 
         // Game Rule: If a player fails to announce 'UNO' while only having 1 card on hand (in their turn), they can be caught by the next player:
         if(!accusedPlayer.hasSaidUno && accusedPlayer.hand.cards.length === 1){
-            // TODO: Missing more implementation details here
+            // Game Rule: Accused player must draw 4 cards as punishment.
+            this._activePlayer = accusedPlayer
+            this._noOfCardsPlayerMustDraw = 4
+            this.draw()
+            this._activePlayer = accusingPlayer
             return true
         }
 
@@ -216,8 +282,7 @@ export class RoundImpl implements Round {
     }
 
     hasEnded(): boolean {
-        //TODO: NOT IMPLEMENTED
-        return false;
+        return this.winner() !== undefined;
     }
 
     onEnd(callback: (event: { winner: number }) => void): void {
@@ -415,6 +480,8 @@ export class RoundImpl implements Round {
                 this.draw()
 
             this.nextPlayer()
+        } else {
+            this._activePlayer.hasDrawnCardInTurn = false
         }
     }
 

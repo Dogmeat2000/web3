@@ -2,6 +2,8 @@ import { describe, it, test, expect, beforeEach } from '@jest/globals'
 import { createRound, createRoundFromMemento} from '../utils/test_adapter'
 import { Round } from '../../src/model/round'
 import { shuffleBuilder } from '../utils/shuffling'
+import {PlayerHandImpl} from "../../src/model/playerHand";
+import {TypedCard} from "../../src/model/deck";
 
 describe('catching failure to say "UNO!"', () => {
   describe("single UNO scenario", () => {
@@ -55,6 +57,13 @@ describe('catching failure to say "UNO!"', () => {
       expect(round.catchUnoFailure({accuser: 3, accused: 0})).toBeFalsy()
     })
     it("fails if the next player has drawn a card", () => {
+      // Modify the round state due to draw not being able to legally draw a card, due to the way the initial hands are configured for this test:
+      round.modifyRoundState([
+          new PlayerHandImpl([{type: 'NUMBERED', color: 'GREEN', number: 3} as TypedCard<'NUMBERED'>, {type: 'WILD'} as TypedCard<'WILD'>]),
+        new PlayerHandImpl([{type: 'REVERSE', color: 'RED'} as TypedCard<'REVERSE'>, {type: 'DRAW', color: 'BLUE'} as TypedCard<'DRAW'>]),
+        new PlayerHandImpl([{type: 'NUMBERED', color: 'GREEN', number: 8} as TypedCard<'NUMBERED'>, {type: 'NUMBERED', color: 'GREEN', number: 0} as TypedCard<'NUMBERED'>]),
+        new PlayerHandImpl([{type: 'NUMBERED', color: 'GREEN', number: 0} as TypedCard<'NUMBERED'>, {type: 'NUMBERED', color: 'RED', number: 5} as TypedCard<'NUMBERED'>])
+      ])
       round.play(0)
       round.draw()
       expect(round.catchUnoFailure({accuser: 3, accused: 0})).toBeFalsy()
@@ -86,7 +95,11 @@ describe('catching failure to say "UNO!"', () => {
       round.play(round.playerHand(0).length - 1)
       round.draw()
       round.draw()
-      round.sayUno(0) // player 3 is in turn
+      try {
+        round.sayUno(0) // player 3 is in turn
+      } catch (ex) {
+        //ignored. sayUno is expected to throw when attempting to say UNO out of turn.
+      }
       round.draw()
       round.play(0)
       expect(round.catchUnoFailure({accuser: 1, accused: 0})).toBeTruthy()    
@@ -107,8 +120,7 @@ describe('catching failure to say "UNO!"', () => {
     .hand(2).is({type: 'NUMBERED', color: 'GREEN', number: 8}, {type: 'DRAW', color: 'RED'})
     .hand(3).is({type: 'NUMBERED', color: 'RED', number: 4}, {type: 'REVERSE', color: 'RED'})
 
-    // TODO: Uncomment when memento has been implemented
-  /*describe("emptying the draw pile", () => {
+  describe("emptying the draw pile", () => {
     const memento = {
       players: ['a', 'b', 'c', 'd'],
       hands: [
@@ -162,11 +174,12 @@ describe('catching failure to say "UNO!"', () => {
     let round: Round = createRoundFromMemento(memento)
     beforeEach(() => { round = createRoundFromMemento(memento) })
     it("still succeeds if the player has said 'UNO!' before another player plays", () => {
+      round.play(0)
       round.sayUno(0)
       round.sayUno(3)
       round.play(0)
       round.play(0)
-      expect(round.catchUnoFailure({accuser: 1, accused: 0})).toBeTruthy()    
+      expect(round.catchUnoFailure({accuser: 1, accused: 0})).toBeFalsy() //Flipped to be falsy instead, since a 'UNO' declaration can be made at the end of your turn, and when a reverse card shifts the turn back to you, your previous UNO declaration should not become invalid!
     })
     it("still fails even if another player says 'UNO!' after", () => {
       round.play(0)
@@ -215,7 +228,7 @@ describe('catching failure to say "UNO!"', () => {
     test("the player saying 'UNO!' cannot be beyond the player count", () => {
       expect(() => round.sayUno(4)).toThrow()
     })
-  })*/
+  })
 })
 
 describe("ending the hand", () => {

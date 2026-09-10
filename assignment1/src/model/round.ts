@@ -57,22 +57,25 @@ export interface Round {
 
     /**
      * Draws one or more cards onto the currently active players hand. Resets the amount of cards the next player should draw to 1.
-     * Amount of cards drawn depends on the aggregate number of draw cards played by previoys players.
+     * Amount of cards drawn depends on the aggregate number of draw cards played by previous players.
      */
     draw(): void
 
     /**
-     * TODO ADD DESCRIPTION
+     * Flags the specified player as having said 'UNO'
+     * @param playerId playerID for the player that should be flagged.
      */
     sayUno(playerId: number): void
 
     /**
-     * TODO ADD DESCRIPTION
+     * Check if accused player failed to say UNO and applies punishment if caught by another player.
+     * @param players An object containing the playerID's for the accuser and the accused.
+     * @returns True if the accused player did in fact fail to say UNO. Otherwise, false.
      */
     catchUnoFailure(players: { accuser: number, accused: number }): boolean
 
     /**
-     * TODO ADD DESCRIPTION
+     * @returns True if this round has ended. This is determined by the presence, or absence of a winner.
      */
     hasEnded(): boolean
 

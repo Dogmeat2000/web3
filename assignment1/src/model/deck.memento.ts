@@ -37,7 +37,7 @@ function readColor(data: CardMemento): Color {
 
 function readNumber(data: CardMemento): TypedCard<'NUMBERED'>['number'] {
     const number = data.number
-    if(typeof number !== 'number' || !validCardNumbers.includes(number)) {
+    if(typeof number !== 'number' || !(validCardNumbers as readonly number[]).includes(number)) {
         throw new Error(`Invalid or missing number: ${number}`)
     }
     return number as TypedCard<'NUMBERED'>['number']
