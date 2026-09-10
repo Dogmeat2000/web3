@@ -4,9 +4,8 @@ import { DeckImpl } from "../../src/model/deck.impl";
 import { Round } from "../../src/model/round";
 import { RoundImpl } from "../../src/model/round.impl";
 import {toRound} from "../../src/model/round.memento";
-
-// Fix (or import) these types:
-type Game = any
+import {Game} from "../../src/model/uno";
+import {GameImpl} from "../../src/model/uno.impl";
 
 export function createInitialDeck(): Deck {
     return new DeckImpl()
@@ -45,7 +44,7 @@ export type GameConfig = {
 }
 
 export function createGame(props: Partial<GameConfig>): Game {
-    // TODO: NOT IMPLEMENTED
+    return new GameImpl(props.players, props.targetScore, props.randomizer, props.shuffler, props.cardsPerPlayer)
 }
 
 export function createGameFromMemento(memento: any, randomizer: Randomizer = standardRandomizer, shuffler: Shuffler<Card> = standardShuffler): Game {
