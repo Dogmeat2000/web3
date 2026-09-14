@@ -453,16 +453,16 @@ export class RoundImpl implements Round {
             this._drawPileDeck = drawPile
 
         if(discardPile !== undefined)
-            this._discardPileDeck = discardPile;
+            this._discardPileDeck = discardPile
 
         if(currentColor !== undefined)
-            this._activeCardColor = currentColor;
+            this._activeCardColor = currentColor
 
         if(currentDirection !== undefined)
-            this._playPassDirection = currentDirection;
+            this._playPassDirection = currentDirection
 
         if(playerInTurn !== undefined)
-            this._activePlayer = this._players[playerInTurn];
+            this._activePlayer = this._players[playerInTurn]
     }
 
     /**
