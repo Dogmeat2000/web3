@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="244" height="364" viewBox="-2 -2 244 364">
+  <title>Card back, pinwheel</title>
+  <rect x="0" y="0" width="240" height="360" rx="40" ry="40" fill="#ffffff" stroke="#000000" stroke-width="2"/>
+  <clipPath id="panel">
+    <rect x="20" y="20" width="200" height="320" rx="20" ry="20"/>
+  </clipPath>
+  <g clip-path="url(#panel)">
+    <rect x="20" y="20" width="200" height="320" fill="#000000"/>
+    <polygon points="120,180 126.98,-69.90 209.18,-53.55" fill="#ff5555"/>
+    <polygon points="120,180 222.08,-48.21 291.77,-1.64" fill="#5555ff"/>
+    <polygon points="120,180 301.64,8.23 348.21,77.92" fill="#ffaa00"/>
+    <polygon points="120,180 353.55,90.82 369.90,173.02" fill="#55aa55"/>
+    <polygon points="120,180 369.90,186.98 353.55,269.18" fill="#ff5555"/>
+    <polygon points="120,180 348.21,282.08 301.64,351.77" fill="#5555ff"/>
+    <polygon points="120,180 291.77,361.64 222.08,408.21" fill="#ffaa00"/>
+    <polygon points="120,180 209.18,413.55 126.98,429.90" fill="#55aa55"/>
+    <polygon points="120,180 113.02,429.90 30.82,413.55" fill="#ff5555"/>
+    <polygon points="120,180 17.92,408.21 -51.77,361.64" fill="#5555ff"/>
+    <polygon points="120,180 -61.64,351.77 -108.21,282.08" fill="#ffaa00"/>
+    <polygon points="120,180 -113.55,269.18 -129.90,186.98" fill="#55aa55"/>
+    <polygon points="120,180 -129.90,173.02 -113.55,90.82" fill="#ff5555"/>
+    <polygon points="120,180 -108.21,77.92 -61.64,8.23" fill="#5555ff"/>
+    <polygon points="120,180 -51.77,-1.64 17.92,-48.21" fill="#ffaa00"/>
+    <polygon points="120,180 30.82,-53.55 113.02,-69.90" fill="#55aa55"/>
+    <circle cx="120" cy="180" r="38" fill="#ffffff"/>
+    <circle cx="120" cy="180" r="16" fill="#000000"/>
+    <circle cx="120" cy="180" r="6" fill="#ffffff"/>
+  </g>
+</svg>
