@@ -1,0 +1,256 @@
+/* =========================================================
+   A Game of UNO — styles
+   ========================================================= */
+
+:root {
+  /* Assets */
+  --img-table:              url("assets/TODO.jpg");
+  --img-lobby-background:   url("assets/images/Lobby_Background.webp");
+  --img-card-stock:         url("assets/images/Modal_Info_background.webp");
+  --img-walnut:             url("assets/TODO.jpg");
+
+  /* Palette */
+  --letterbox:   #090907;
+  --ink-dark:    #2b2b2b;   /* text on card stock */
+  --ink-light:   #f3ece0;   /* text on walnut */
+  --btn-bg:      #444444;
+  --btn-bg-hover:#2f2f2f;
+  --btn-ink:     #ffffff;
+  --field-bg:    #ffffff;
+  --field-ink:   #2b2b2b;
+  --field-line:  #444444;
+  --error:       #e0472a;
+  --focus:       #f5b400;
+
+  /* Modal frame (drawn in CSS, not baked into the texture) */
+  --modal-border: 2px solid rgba(0, 0, 0, 0.55);
+  --modal-radius: 12px;
+  --modal-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--letterbox);
+  font-family: var(--font), serif;
+}
+
+[hidden] { display: none !important; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* =========================================================
+   LOBBY — full-viewport table background (cover)
+   ========================================================= */
+.lobby {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background-color: var(--letterbox);
+  background-image: var(--img-lobby-background);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: 50% 50%;
+}
+
+/* Narrow / portrait: shift focus so the table stays in view */
+@media (orientation: portrait), (max-width: 700px) {
+  .lobby { background-position: 68% 50%; }
+}
+
+/* =========================================================
+   MODAL — texture fills, frame drawn in CSS
+   ========================================================= */
+.modal {
+  width: min(100%, 34rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.5rem 2rem 0.75rem;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  border: var(--modal-border);
+  border-radius: var(--modal-radius);
+  box-shadow: var(--modal-shadow);
+  overflow: hidden;           /* keeps texture inside the rounded corners */
+  text-align: center;
+}
+
+/* Text colour is tied to the texture */
+.modal--card {
+  background-image: var(--img-card-stock);
+  background-color: #dddddd; /* fallback if texture fails to load */
+  color: var(--ink-dark);
+}
+
+.modal--walnut {
+  background-image: var(--img-walnut);
+  background-color: #4a2f1d; /* fallback */
+  color: var(--ink-light);
+  --btn-bg: #e9dfcf;
+  --btn-bg-hover: #ffffff;
+  --btn-ink: #2b1d12;
+}
+
+.modal__title {
+  margin: 0 0 1rem;
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  font-weight: 700;
+}
+
+.modal__intro {
+  margin: 0 0 2rem;
+  max-width: 28rem;
+  font-size: 1.125rem;
+  line-height: 1.45;
+}
+
+.modal__footer {
+  align-self: stretch;
+  margin-top: 3.5rem;
+  font-size: 0.8rem;
+  text-align: left;
+  opacity: 0.85;
+}
+
+/* =========================================================
+   FORM
+   ========================================================= */
+.lobby-form {
+  width: min(100%, 27rem);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.field {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font: inherit;
+  font-size: 1.2rem;
+  color: var(--field-ink);
+  background: var(--field-bg);
+  border: 1px solid var(--field-line);
+  border-radius: 0;
+}
+
+.field::placeholder { color: #9a9a9a; }
+
+.field[aria-invalid="true"] {
+  border-color: var(--error);
+  box-shadow: inset 0 0 0 1px var(--error);
+}
+
+.btn {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font: inherit;
+  font-size: 1.2rem;
+  color: var(--btn-ink);
+  background: var(--btn-bg);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.lobby-form .btn:first-of-type { margin-top: 0.25rem; }
+
+.btn:hover { background: var(--btn-bg-hover); }
+
+.field:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.form-error {
+  min-height: 1.5em;          /* reserves space so layout doesn't jump */
+  margin: 2.5rem 0 0;
+  font-size: 1.25rem;
+  color: var(--error);
+}
+
+/* =========================================================
+   GAME STAGE — fixed 16:9, letterboxed
+   Everything inside is placed in stage percentages so it
+   stays locked to the felt at any window size.
+   ========================================================= */
+.stage-frame {
+  width: 100vw;
+  height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: var(--letterbox);
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: min(100vw, 177.78vh);
+  background-image: var(--img-table);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  container-type: inline-size;   /* lets children size text in cqw */
+}
+
+@supports (height: 100dvh) {
+  .stage { width: min(100vw, 177.78dvh); }
+}
+
+/* Placeholder coordinates — tune against your table image */
+.pile {
+  position: absolute;
+  width: 8%;
+  aspect-ratio: 56 / 87;         /* standard UNO card proportions */
+  border-radius: 0.6cqw;
+}
+
+.pile--draw    { left: 38%; top: 36%; }
+.pile--discard { left: 54%; top: 36%; }
+
+.hand {
+  position: absolute;
+  left: 20%;
+  width: 60%;
+  height: 20%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.hand--opponent { top: 4%; }
+.hand--player   { bottom: 4%; }
+
+.tile {
+  height: 100%;
+  aspect-ratio: 56 / 87;
+  margin-inline: -1.2%;          /* overlapping fan */
+  border-radius: 0.6cqw;
+}
+
+.stage__overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.stage .modal { font-size: 1.1cqw; }
