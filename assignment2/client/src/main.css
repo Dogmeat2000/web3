@@ -6,7 +6,7 @@
   /* Assets */
   --img-table:              url("assets/TODO.jpg");
   --img-lobby-background:   url("assets/images/Lobby_Background.webp");
-  --img-card-stock:         url("assets/images/Modal_Info_background.webp");
+  --img-card-stock:         url("assets/images/Modal_Info_Background.webp");
   --img-walnut:             url("assets/TODO.jpg");
 
   /* Palette */
@@ -54,8 +54,9 @@ html, body {
 }
 
 /* =========================================================
-   LOBBY — full-viewport table background (cover)
+   LOBBY & HOST — full-viewport table background (cover)
    ========================================================= */
+.host,
 .lobby {
   min-height: 100dvh;
   display: grid;
@@ -68,9 +69,8 @@ html, body {
   background-position: 50% 50%;
 }
 
-/* Narrow / portrait: shift focus so the table stays in view */
 @media (orientation: portrait), (max-width: 700px) {
-  .lobby { background-position: 68% 50%; }
+  .host, .lobby { background-position: 68% 50%; }
 }
 
 /* =========================================================
@@ -90,6 +90,7 @@ html, body {
   box-shadow: var(--modal-shadow);
   overflow: hidden;           /* keeps texture inside the rounded corners */
   text-align: center;
+  position: relative;
 }
 
 /* Text colour is tied to the texture */
@@ -129,9 +130,29 @@ html, body {
   opacity: 0.85;
 }
 
+.modal__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--btn-ink);
+  background: var(--btn-bg);
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.modal__close:hover { background: var(--btn-bg-hover); }
+.modal__close:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
 /* =========================================================
    FORM
    ========================================================= */
+.host-form,
 .lobby-form {
   width: min(100%, 27rem);
   display: grid;
@@ -169,7 +190,7 @@ html, body {
   transition: background-color 120ms ease;
 }
 
-.lobby-form .btn:first-of-type { margin-top: 0.25rem; }
+.host-form, .lobby-form .btn:first-of-type { margin-top: 0.25rem; }
 
 .btn:hover { background: var(--btn-bg-hover); }
 
@@ -214,7 +235,6 @@ html, body {
   .stage { width: min(100vw, 177.78dvh); }
 }
 
-/* Placeholder coordinates — tune against your table image */
 .pile {
   position: absolute;
   width: 8%;
@@ -254,3 +274,34 @@ html, body {
 }
 
 .stage .modal { font-size: 1.1cqw; }
+
+.summary {
+  width: min(100%, 27rem);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem 1.5rem;
+  margin: 0 0 1.5rem;
+  text-align: left;
+}
+
+.summary dt { font-weight: 700; font-size: 1.15rem; }
+
+.summary dd {
+  margin: 0;
+  font-size: 1.15rem;
+  justify-self: end;
+  overflow-wrap: anywhere;          /* a long name wraps instead of pushing the layout wide */
+}
+
+.summary__secret { display: flex; align-items: center; gap: 0.5rem; }
+
+.summary__toggle {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.6rem;
+  color: var(--btn-ink);
+  background: var(--btn-bg);
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
