@@ -1,7 +1,7 @@
 import { ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import type { Game } from '@domain/model/uno'
-import { type GameSettings, validateGameSettings } from '@/models/GameSettings'
+import { type GameSettings } from '@/models/GameSettings'
 import type { GameCredentials } from '@/models/GameCredentials.ts'
 import { GameImpl } from '@domain/model/uno.impl.ts'
 
@@ -62,11 +62,19 @@ export const useGameStore = defineStore('game', () => {
   /**
    * Action run on "Host Game" from the Host Game menu. It creates a new game hosted in this browser, based on the current settings in this store.
    */
-  function createGame(): void {
+  function createGame(newSettings: GameSettings): boolean {
     error.value = null
 
-    const currentSettings = settings.value
-    game.value = new GameImpl(playerNames.slice(0, currentSettings!.playerCount), currentSettings!.targetScore)
+    try {
+      game.value = new GameImpl(playerNames.slice(0, newSettings.playerCount), newSettings.targetScore)
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : String(e)
+      return false
+    }
+
+    settings.value = { ...newSettings, name: newSettings.name.trim() }
+    pendingHost.value = null
+    return true
   }
 
   function clearError(): void {

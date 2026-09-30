@@ -27,7 +27,7 @@ if (pendingHost.value === null) {
 
 gameStore.clearError()
 
-const message = computed(() => fieldErrors.value.name ?? fieldErrors.value.password ?? gameError.value ?? '')
+const message = computed(() => fieldErrors.value.name ?? fieldErrors.value.password ?? fieldErrors.value.playerCount ?? fieldErrors.value.targetScore ?? gameError.value ?? '')
 
 watch(form, () => {
   fieldErrors.value = {}
@@ -44,8 +44,7 @@ async function host(): Promise<void> {
     return
   }
 
-  if (settings.value !== null) {
-    gameStore.createGame()
+  if (gameStore.createGame(form) && settings.value !== null) {
     await router.push({ name: 'game', params: { name: settings.value.name } })
   }
 }

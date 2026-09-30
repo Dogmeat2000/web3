@@ -51,7 +51,7 @@ export function validateGameSettings(gameSettings: GameSettings): SettingsErrors
     errors.password = 'Password is missing'
   }
 
-  if (gameSettings.playerCount < 2 || gameSettings.targetScore > 10) {
+  if (gameSettings.playerCount < 2 || gameSettings.playerCount > 10) {
     errors.playerCount = 'Number of players must be between 2 and 10.'
   }
 
