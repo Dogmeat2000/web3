@@ -7,6 +7,7 @@ import { PlayerHand } from "./playerHand";
 import { RoundMemento } from "./round.memento";
 import { Card } from "./card";
 import { Color } from "./color";
+import * as console from "node:console";
 
 export class RoundImpl implements Round {
     private readonly _players: Player[] = []
@@ -94,6 +95,13 @@ export class RoundImpl implements Round {
                 break
         }
         this.nextPlayer()
+    }
+
+    playerObj(playerId: number): Player | undefined {
+        if(playerId < 0 || playerId > this.playerCount)
+            return undefined
+
+        return this._players[playerId]
     }
 
     get playerCount(): number {
@@ -373,6 +381,11 @@ export class RoundImpl implements Round {
             dealer: this._dealer.playerId,
             playerInTurn: this._activePlayer.playerId
         }
+    }
+
+    playDirection(): 'counterclockwise' | 'clockwise' {
+        return this._playPassDirection;
+        return this._playPassDirection;
     }
 
     get dealer(): number {

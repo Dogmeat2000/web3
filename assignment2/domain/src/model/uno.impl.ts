@@ -4,6 +4,7 @@ import { Randomizer, Shuffler, standardRandomizer, standardShuffler } from "../u
 import { RoundImpl } from "./round.impl";
 import { GameMemento } from "./uno.memento";
 import { Card } from "./card";
+import {Player} from "./player";
 
 export class GameImpl implements Game {
     playerCount: number;

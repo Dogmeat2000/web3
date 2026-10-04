@@ -6,7 +6,7 @@ import { useGameStore } from '@/stores/gameStore.ts'
 import { storeToRefs } from 'pinia'
 import { type GameSettings, type SettingsErrors, validateGameSettings } from '@/models/GameSettings.ts'
 
-const playerCounts = Array.from([2, 3, 4, 5, 6, 7, 8, 9, 10])
+const playerCounts = [2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 const router = useRouter()
 const gameStore = useGameStore()
@@ -15,8 +15,9 @@ const { pendingHost, settings, error: gameError } = storeToRefs(gameStore)
 const form = reactive<GameSettings>({
   name: pendingHost.value?.name ?? '',
   password: pendingHost.value?.password ?? '',
-  playerCount: 4,
+  playerCount: 10,
   targetScore: 500,
+  joinedPlayers: {},
 })
 
 const fieldErrors = ref<SettingsErrors>({})
@@ -46,6 +47,9 @@ async function host(): Promise<void> {
 
   if (gameStore.createGame(form) && settings.value !== null) {
     await router.push({ name: 'game', params: { name: settings.value.name } })
+
+    gameStore.localPlayerId = 0
+    settings.value.joinedPlayers[0] = 'host'
   }
 }
 </script>

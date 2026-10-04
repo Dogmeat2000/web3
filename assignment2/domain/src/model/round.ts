@@ -3,6 +3,7 @@ import { PlayerHand } from "./playerHand";
 import { RoundMemento } from "./round.memento";
 import { Color } from "./color";
 import { Card } from "./card";
+import {Player} from "./player";
 
 /**
  * A Round encapsulates all the logic needed to complete a single round of the Uno game. Each round concludes with a winner (the first player to say uno and put down their last remaining card), as well as a score attributed to the winning player.
@@ -16,6 +17,11 @@ export interface Round {
      * @returns The name of the player with the provided id, or undefined if no player match is found.
      */
     player(playerId: number): string | undefined
+
+    /**
+     * Returns the player object containing information about this player.
+     */
+    playerObj(playerId: number): Player | undefined
 
     /**
      * Plays the card with the provided index position on the current players hand. If the player names a color, this is also applied - which is primarily used for the WILD cards.
@@ -95,6 +101,11 @@ export interface Round {
      * Callback function that publishes and event containing the winner, when the round ends.
      */
     onEnd(callback: (event: { winner: number }) => void): void
+
+    /**
+     * Returns the direction of play.
+     */
+    playDirection(): 'counterclockwise' | 'clockwise'
 
     /**
      * Converts the current Rounds state into a memento object.

@@ -1,5 +1,6 @@
 import { Round } from "./round";
 import { GameMemento } from "./uno.memento";
+import {Player} from "./player";
 
 export interface Game {
     /**
@@ -17,7 +18,6 @@ export interface Game {
      * @returns The specified players' name.
      */
     player(playerId: number): string
-
 
     /**
      * @param playerId The id for the player for which to retrieve their current score in this game.

@@ -29,7 +29,11 @@ export const useGameStore = defineStore('game', () => {
   /** Why the last action failed, worded for the player. */
   const error = ref<string | null>(null)
 
+  /** Default names of all players */
   const playerNames: string[] = ['Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6', 'Player7', 'Player8', 'Player9', 'Player10']
+
+  /** ID of the local player in this browser */
+  const localPlayerId = ref<number>(-1)
 
   // Actions:
   /**
@@ -41,6 +45,7 @@ export const useGameStore = defineStore('game', () => {
 
   /**
    * Action run on "Join Game" from the lobby. It joins to a game hosted in this browser, if the name and password match.
+   * TODO: Implement this fully as part of Assignment3
    */
   function joinGame({ name, password }: GameCredentials): boolean {
     error.value = null
@@ -81,7 +86,7 @@ export const useGameStore = defineStore('game', () => {
     error.value = null
   }
 
-  return { pendingHost, settings, game, error, prepareHost, joinGame, createGame, clearError }
+  return { pendingHost, settings, localPlayerId, game, error, prepareHost, joinGame, createGame, clearError }
 })
 
 function sameName(a: string, b: string): boolean {

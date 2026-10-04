@@ -5,3 +5,5 @@ Main Workbook for WEB3 (Fullstack Development) course assignments
 UNO Cards (Public Domain): https://upload.wikimedia.org/wikipedia/commons/9/95/UNO_cards_deck.svg
 
 Grok Imagine was used for generating the other visual assets.
+
+LLM's assisted greatly with the css styling.
