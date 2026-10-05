@@ -1,4 +1,4 @@
-import { ref, shallowRef } from 'vue'
+import { ref, shallowRef, triggerRef } from 'vue'
 import { defineStore } from 'pinia'
 import type { Game } from '@domain/model/uno'
 import { type GameSettings } from '@/models/GameSettings'

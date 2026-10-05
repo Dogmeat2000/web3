@@ -7,7 +7,6 @@ import { PlayerHand } from "./playerHand";
 import { RoundMemento } from "./round.memento";
 import { Card } from "./card";
 import { Color } from "./color";
-import * as console from "node:console";
 
 export class RoundImpl implements Round {
     private readonly _players: Player[] = []
@@ -384,7 +383,6 @@ export class RoundImpl implements Round {
     }
 
     playDirection(): 'counterclockwise' | 'clockwise' {
-        return this._playPassDirection;
         return this._playPassDirection;
     }
 

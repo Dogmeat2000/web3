@@ -46,10 +46,10 @@ async function host(): Promise<void> {
   }
 
   if (gameStore.createGame(form) && settings.value !== null) {
-    await router.push({ name: 'game', params: { name: settings.value.name } })
-
     gameStore.localPlayerId = 0
     settings.value.joinedPlayers[0] = 'host'
+
+    await router.push({ name: 'game', params: { name: settings.value.name } })
   }
 }
 </script>

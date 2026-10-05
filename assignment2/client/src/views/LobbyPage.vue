@@ -89,6 +89,7 @@ async function host(): Promise<void> {
         />
 
         <!-- Buttons -->
+        <!-- TODO Re-enable the join button in assignment 3-->
         <button class="btn-disabled" type="submit" disabled>Join Game<br />(Only single player is supported for now!)</button>
         <button class="btn" type="button" @click="host">Host Game</button>
       </form>
