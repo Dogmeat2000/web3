@@ -251,8 +251,6 @@ export class RoundImpl implements Round {
         if(this._players[playerId].hand.cards.length > 2)
             throw new Error(`Cannot say UNO when you have more than 2 cards on hand.`)
 
-        console.log(`Whose turn is it? ${this._activePlayer.playerName}`)
-
         // Game Rule: Cannot say 'UNO' if next player has drawn cards, or has played his/her card:
         const step = this._playPassDirection === 'counterclockwise' ? -1 : 1
         const nextAfterPlayer: number = (playerId + step + this.playerCount) % this.playerCount

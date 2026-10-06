@@ -1,30 +1,38 @@
 <script setup lang="ts">
 import PlayerAvatarCard from '@/components/game/PlayerAvatarCard.vue'
+import ScoreBoard from '@/components/game/ScoreBoard.vue'
 import { useGameStore } from '@/stores/gameStore.ts'
 import { storeToRefs } from 'pinia'
 import { computed, onMounted, onUnmounted, ref, triggerRef } from 'vue'
 import { getCardUrl } from '@/helpers/cardUrlHelper.ts'
 import { useRouter } from 'vue-router'
 import type { Color } from '@domain/model/color.ts'
-import type { Card } from '@domain/model/card.ts'
+import { type Card } from '@domain/model/card.ts'
+import type { ScoreRow } from '@/models/ScoreRow.ts'
+
+type Action = { type: 'draw' } | { type: 'play'; cardIndex: number; namedColor?: Color }
 
 const router = useRouter()
 const gameStore = useGameStore()
 const { game, localPlayerId, settings /*, error: gameError*/ } = storeToRefs(gameStore)
 const playerIds = computed(() => (game.value ? Array.from({ length: game.value.playerCount }, (_, id) => id) : []))
 const seatingPriority = [3, 4, 5, 6, 7, 8, 9, 10, 1, 2]
+const workers = new Map<number, Worker>()
+let running = true
+let resolveHuman: ((action: Action) => void) | null = null
+const pendingWild = ref<number | null>(null) // index of a Wild waiting for a color
+const chosenWildColor = new Map<number, Color | undefined>() // Key/Value pair, number is playerId and any color that player might have said after playing a Wild card.
+const roundResult = ref<{ winner: number; gained: number } | null>(null) // Set when a round ends. Shows the scoreboard until it is closed.
+let resolveContinue: (() => void) | null = null
+
+// All players, with the highest score first.
+const scoreRows = computed<ScoreRow[]>(() =>
+  playerIds.value.map((id) => ({ playerId: id, name: game.value!.player(id), score: game.value!.score(id) ?? 0, isLocalPlayer: id === localPlayerId.value })).sort((a, b) => b.score - a.score),
+)
 
 if (game.value === null) {
   router.replace({ name: 'lobby' })
 }
-
-type Action = { type: 'draw' } | { type: 'play'; cardIndex: number; namedColor?: Color }
-
-const workers = new Map<number, Worker>()
-
-let running = true
-let resolveHuman: ((action: Action) => void) | null = null
-const pendingWild = ref<number | null>(null) // index of a Wild waiting for a color
 
 /**
  * Responsible for controlling/looping through the game.
@@ -62,11 +70,28 @@ async function gameLoop(): Promise<void> {
           round.sayUno(playerId)
         }
         round.play(action.cardIndex, action.namedColor)
+        chosenWildColor.clear()
+
+        if (action.namedColor !== undefined) {
+          chosenWildColor.set(playerId, action.namedColor)
+        }
       }
     } catch (e) {
       console.warn(e) // illegal move: the same player is asked again
     }
     triggerRef(game)
+
+    if (round.hasEnded()) {
+      chosenWildColor.clear()
+      roundResult.value = { winner: round.winner()!, gained: round.score() ?? 0 }
+
+      if (game.value!.winner() !== undefined) {
+        // Game Over
+        break
+      }
+
+      await waitForContinue()
+    }
   }
 }
 
@@ -81,6 +106,10 @@ function waitForHuman(): Promise<Action> {
   return new Promise((resolve) => (resolveHuman = resolve))
 }
 
+function waitForContinue(): Promise<void> {
+  return new Promise((resolve) => (resolveContinue = resolve))
+}
+
 function startBots(): void {
   for (let playerId = 0; playerId < game.value!.playerCount; playerId++) {
     if (playerId === localPlayerId.value) {
@@ -89,6 +118,20 @@ function startBots(): void {
 
     workers.set(playerId, new Worker(new URL('../bots/bot.worker.ts', import.meta.url), { type: 'module' }))
   }
+}
+
+/**
+ * The player who gets the turn after the current one, or undefined when no round is being played.
+ */
+function nextPlayerId(): number | undefined {
+  const round = game.value?.currentRound()
+  const playerInTurn = round?.playerInTurn()
+  if (!round || playerInTurn === undefined) {
+    return undefined
+  }
+
+  const step = round.playDirection() === 'counterclockwise' ? -1 : 1
+  return (playerInTurn + step + round.playerCount) % round.playerCount
 }
 
 function currentPlayerIsLocalPlayer(): boolean {
@@ -116,6 +159,15 @@ function onColorClick(namedColor: Color): void {
 
 function onDrawClick(): void {
   resolveHuman?.({ type: 'draw' })
+}
+
+function onContinueClick(): void {
+  roundResult.value = null
+  resolveContinue?.()
+}
+
+async function onExitClick(): Promise<void> {
+  await router.push({ name: 'lobby' })
 }
 
 onMounted(() => {
@@ -150,16 +202,13 @@ onUnmounted(() => {
             :cardCount="game.currentRound()?.playerObj(playerId)?.hand.cards.length ?? 0"
             :score="game.score(playerId) ?? 0"
             :isBot="settings!.joinedPlayers[playerId] === undefined"
-            :isTurn="game.currentRound()!.playerInTurn() === playerId"
-            :isNext="
-              game.currentRound()!.playDirection() === 'counterclockwise'
-                ? (game.currentRound()!.playerInTurn()! - 1 + game.playerCount) % game.playerCount === playerId
-                : (game.currentRound()!.playerInTurn()! + 1 + game.playerCount) % game.playerCount === playerId
-            "
+            :isTurn="game.currentRound()?.playerInTurn() === playerId"
+            :isNext="nextPlayerId() === playerId"
             :hasSaidUno="game.currentRound()?.playerObj(playerId)?.hasSaidUno ?? false"
             :isLocalPlayer="settings!.joinedPlayers[playerId] === 'host'"
+            :hasSaidThisColor="chosenWildColor.get(playerId)"
           />
-          <!-- TODO: Find a smarter way to identify the local player when multiplayer support is implemented! -->
+          <!-- TODO: Find a smarter way to identify the local player when multiplayer support is implemented in Assignment 3! -->
         </li>
       </ol>
 
@@ -177,7 +226,7 @@ onUnmounted(() => {
 
       <!-- The top card of the discard pile. -->
       <div class="pile pile--discard">
-        <img v-if="game!.currentRound()!.drawPile().top()" :src="getCardUrl(game!.currentRound()!.discardPile().top()!)" alt="" />
+        <img v-if="game!.currentRound()?.discardPile().top()" :src="getCardUrl(game!.currentRound()!.discardPile().top()!)" alt="" />
         <span class="pile__label">Discard</span>
       </div>
 
@@ -200,8 +249,8 @@ onUnmounted(() => {
       </ul>
 
       <!-- Choosing a colour after playing a Wild card. -->
-      <div class="stage__overlay" hidden>
-        <section class="modal modal--walnut" role="dialog" aria-modal="true" aria-labelledby="color-title">
+      <div v-if="pendingWild !== null" class="stage__overlay">
+        <section class="modal modal--walnut" role="dialog">
           <h2 class="modal__title" id="color-title">Choose a Colour</h2>
           <div class="color-choices">
             <button class="color-choice color-choice--red" type="button" @click="onColorClick('RED')">Red</button>
@@ -213,110 +262,27 @@ onUnmounted(() => {
       </div>
 
       <!-- End of a round. -->
-      <!-- TODO Tie this into vue -->
-      <div class="stage__overlay" hidden>
-        <section class="modal modal--card" role="dialog" aria-modal="true" aria-labelledby="round-title">
-          <h2 class="modal__title" id="round-title">Round Winner</h2>
-          <p class="winner">Player 3</p>
-
-          <div class="scoreboard-wrap">
-            <table class="scoreboard">
-              <caption class="visually-hidden">
-                Scores after this round
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">Player</th>
-                  <th scope="col">Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="scoreboard__row--winner">
-                  <td>1</td>
-                  <td>Player 3</td>
-                  <td>275 <span class="scoreboard__gain">+87</span></td>
-                </tr>
-                <tr>
-                  <td>2</td>
-                  <td>Player 2</td>
-                  <td>132</td>
-                </tr>
-                <tr>
-                  <td>3</td>
-                  <td>Player 1 (you)</td>
-                  <td>42</td>
-                </tr>
-                <tr>
-                  <td>4</td>
-                  <td>Player 10</td>
-                  <td>15</td>
-                </tr>
-                <tr>
-                  <td>5</td>
-                  <td>Player 4</td>
-                  <td>10</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <button class="btn" type="button">Continue</button>
-        </section>
-      </div>
+      <ScoreBoard
+        v-if="roundResult && game!.winner() === undefined"
+        title="Round Winner"
+        :headline="game!.player(roundResult.winner)"
+        buttonLabel="Play Next Round"
+        :rows="scoreRows"
+        :winnerId="roundResult.winner"
+        :gained="roundResult.gained"
+        @close="onContinueClick"
+      />
 
       <!-- End of the game. -->
-      <!-- TODO Tie this into vue -->
-      <div class="stage__overlay" hidden>
-        <section class="modal modal--card" role="dialog" aria-modal="true" aria-labelledby="game-over-title">
-          <h2 class="modal__title" id="game-over-title">Game Over</h2>
-          <p class="winner">Winner: Player 3</p>
-
-          <div class="scoreboard-wrap">
-            <table class="scoreboard">
-              <caption class="visually-hidden">
-                Final scores
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">#</th>
-                  <th scope="col">Player</th>
-                  <th scope="col">Score</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr class="scoreboard__row--winner">
-                  <td>1</td>
-                  <td>Player 3</td>
-                  <td>512</td>
-                </tr>
-                <tr>
-                  <td>2</td>
-                  <td>Player 2</td>
-                  <td>301</td>
-                </tr>
-                <tr>
-                  <td>3</td>
-                  <td>Player 1 (you)</td>
-                  <td>188</td>
-                </tr>
-                <tr>
-                  <td>4</td>
-                  <td>Player 10</td>
-                  <td>97</td>
-                </tr>
-                <tr>
-                  <td>5</td>
-                  <td>Player 4</td>
-                  <td>40</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <button class="btn" type="button">Exit</button>
-        </section>
-      </div>
+      <ScoreBoard
+        v-if="game!.winner() !== undefined"
+        title="Game Over"
+        :headline="`Winner: ${game!.player(game!.winner()!)}`"
+        buttonLabel="Exit"
+        :rows="scoreRows"
+        :winnerId="game!.winner()!"
+        @close="onExitClick"
+      />
     </div>
   </main>
 </template>
