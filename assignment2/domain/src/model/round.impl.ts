@@ -96,20 +96,6 @@ export class RoundImpl implements Round {
         this.nextPlayer()
     }
 
-    // TODO: Probably remove this again!
-    catchablePlayer(): number | undefined {
-        if(this.hasEnded() || this._activePlayer.hasDrawnCardInTurn)
-            return undefined
-
-        const step = this._playPassDirection === 'counterclockwise' ? -1 : 1
-        const previous: Player = this._players[(this._activePlayer.playerId - step + this.playerCount) % this.playerCount]
-
-        if(previous.hasSaidUno || previous.hand.cards.length !== 1)
-            return undefined
-
-        return previous.playerId
-    }
-
     playerObj(playerId: number): Player | undefined {
         if(playerId < 0 || playerId > this.playerCount)
             return undefined
