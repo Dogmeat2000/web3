@@ -83,6 +83,11 @@ export interface Round {
     catchUnoFailure(players: { accuser: number, accused: number }): boolean
 
     /**
+     * @returns The id of the player who can currently be caught for not saying UNO, if any. Otherwise, undefined.
+     */
+    catchablePlayer(): number | undefined
+
+    /**
      * @returns True if this round has ended. This is determined by the presence, or absence of a winner.
      */
     hasEnded(): boolean

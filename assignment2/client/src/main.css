@@ -452,7 +452,7 @@ html, body {
 
 .say-uno {
   position: absolute;
-  left: 50%;
+  left: 44%;
   top: 58%;
   transform: translateX(-50%);
   padding: 0.5cqw 1.6cqw;
@@ -464,6 +464,8 @@ html, body {
   border-radius: 0.4cqw;
   cursor: pointer;
 }
+
+.say-uno--catch { left: 56%; }
 
 .say-uno:hover { background: var(--btn-bg-hover); }
 

@@ -96,6 +96,20 @@ export class RoundImpl implements Round {
         this.nextPlayer()
     }
 
+    // TODO: Probably remove this again!
+    catchablePlayer(): number | undefined {
+        if(this.hasEnded() || this._activePlayer.hasDrawnCardInTurn)
+            return undefined
+
+        const step = this._playPassDirection === 'counterclockwise' ? -1 : 1
+        const previous: Player = this._players[(this._activePlayer.playerId - step + this.playerCount) % this.playerCount]
+
+        if(previous.hasSaidUno || previous.hand.cards.length !== 1)
+            return undefined
+
+        return previous.playerId
+    }
+
     playerObj(playerId: number): Player | undefined {
         if(playerId < 0 || playerId > this.playerCount)
             return undefined
@@ -286,15 +300,17 @@ export class RoundImpl implements Round {
             return false
 
         const accusedPlayer: Player = this._players[players.accused]
-        const accusingPlayer: Player = this._players[players.accuser]
 
-        // Game Rule: If a player fails to announce 'UNO' while only having 1 card on hand (in their turn), they can be caught by the next player:
+        // Game Rule: If a player fails to announce 'UNO' while only having 1 card on hand (in their turn), they can be caught by another player:
         if(!accusedPlayer.hasSaidUno && accusedPlayer.hand.cards.length === 1){
             // Game Rule: Accused player must draw 4 cards as punishment.
+            const playerInTurn: Player = this._activePlayer
+
             this._activePlayer = accusedPlayer
             this._noOfCardsPlayerMustDraw = 4
-            this.draw()
-            this._activePlayer = accusingPlayer
+            this.drawCards()
+            accusedPlayer.hasDrawnCardInTurn = false
+            this._activePlayer = playerInTurn
             return true
         }
 
@@ -610,7 +626,7 @@ export class RoundImpl implements Round {
                 sameType = this._discardPileDeck.top()?.type === 'REVERSE'
 
                 // Apply Special Card effects
-                if(applySpecialEffects && sameColor) {
+                if(applySpecialEffects && (sameColor || sameType)) {
                     // Game Rule: Reverses the direction of play, when more than 2 players:
                     if(this.playerCount > 2) {
                         this.togglePlayDirection();

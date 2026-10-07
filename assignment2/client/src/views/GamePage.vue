@@ -62,6 +62,12 @@ async function gameLoop(): Promise<void> {
     }
 
     try {
+      if (Math.floor(Math.random() * 100) > 40) {
+        // Strategy here is just to accuse everyone, since the domain ensures only the previous player can succesfully be accused.
+        // 60% Chance of catching a player who didn't say UNO
+        tryCatch(playerId)
+      }
+
       if (action.type === 'draw') {
         round.draw()
       } else {
@@ -142,6 +148,21 @@ function currentPlayerIsLocalPlayer(): boolean {
   }
 }
 
+function tryCatch(accuser: number): boolean {
+  const round = game.value?.currentRound()
+  if (!round) {
+    return false
+  }
+
+  for (let accused = 0; accused < round.playerCount; accused++) {
+    if (accused !== accuser && round.catchUnoFailure({ accuser, accused })) {
+      triggerRef(game)
+      return true
+    }
+  }
+  return false
+}
+
 // Click handlers
 function onCardClick(cardIndex: number): void {
   const card = game.value!.currentRound()!.playerHand(localPlayerId.value)[cardIndex]!
@@ -168,6 +189,15 @@ function onContinueClick(): void {
 
 async function onExitClick(): Promise<void> {
   await router.push({ name: 'lobby' })
+}
+
+function onSayUnoClick(): void {
+  try {
+    game.value?.currentRound()?.sayUno(localPlayerId.value)
+  } catch (e) {
+    console.warn(e)
+  }
+  triggerRef(game)
 }
 
 onMounted(() => {
@@ -230,7 +260,11 @@ onUnmounted(() => {
         <span class="pile__label">Discard</span>
       </div>
 
-      <button v-if="currentPlayerIsLocalPlayer()" class="say-uno" type="button">Say UNO</button>
+      <!-- Player button to say 'UNO' with-->
+      <button v-if="currentPlayerIsLocalPlayer()" class="say-uno" type="button" @click="onSayUnoClick">Say UNO</button>
+
+      <!-- Player button to catch someone who forgot to say 'UNO' -->
+      <button v-if="game?.currentRound()" class="say-uno say-uno--catch" type="button" @click="tryCatch(localPlayerId)">Catch!</button>
 
       <!-- Your side of the table -->
       <p class="you-bar"><span>Your Hand</span></p>
