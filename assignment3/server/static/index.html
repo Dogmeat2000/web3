@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bookstore</title>
+    <style>
+      body { font-family: sans-serif; padding: 20px; background: #eee; }
+      .card { background: white; padding: 15px; margin: 10px 0; border-radius: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    </style>
+    <script>
+        async function load() {
+            const content = document.getElementById('content');
+            const query = `query GetBooks($term: String!) {
+          searchBooks(searchTerm: $term) { id title rrp }
+        }`;
+            const variables = { "term": "of" };
+
+            try {
+                const res = await fetch('/graphql', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query, variables })
+                });
+                const result = await res.json();
+
+                if (result.errors) {
+                    content.innerHTML = `<p style="color:red">Error: ${result.errors[0].message}</p>`;
+                    return;
+                }
+
+                const books = result.data.searchBooks;
+                content.innerHTML = books.map(b => `
+                <div class="card">
+                    <strong>${b.title}</strong><br>Price: $${b.rrp.toFixed(2)}
+                </div>
+            `).join('');
+            } catch (e) {
+                content.innerHTML = "Critical Connection Error.";
+            }
+        }
+    </script>
+</head>
+<body onload="load()">
+<h1>Bookstore: Searching for term 'of' (Hard coded in index.html)</h1>
+<div id="content">Loading...</div>
+</body>
+</html>
