@@ -1,7 +1,7 @@
 import { MongoClient, ObjectId } from 'mongodb';
 //import { sellSingleBookToCustomer } from '../operations/sellSingleBookToCustomer.js';
 
-const connectionString = 'mongodb+srv://ViaStudent344849:V1a_344849_Stud3nt@mycluster.bk1bieo.mongodb.net/'
+const connectionString = ''
 let client = undefined
 
 function mongoClient() {
