@@ -1,0 +1,714 @@
+/* =========================================================
+   A Game of UNO — styles
+   ========================================================= */
+
+:root {
+  /* Assets */
+  --img-table:              url("assets/images/Game_Background.webp");
+  --img-lobby-background:   url("assets/images/Lobby_Background.webp");
+  --img-card-stock:         url("assets/images/Modal_Info_Background.webp");
+  --img-walnut:             url("assets/images/Modal_Background.webp");
+
+  /* Palette */
+  --letterbox:   #090907;
+  --ink-dark:    #2b2b2b;   /* text on card stock */
+  --ink-light:   #f3ece0;   /* text on walnut */
+  --btn-bg:      #444444;
+  --btn-bg-hover:#2f2f2f;
+  --btn-ink:     #ffffff;
+  --field-bg:    #ffffff;
+  --field-ink:   #2b2b2b;
+  --field-line:  #444444;
+  --error:       #e0472a;
+  --focus:       #f5b400;
+
+  /* Player states at the table */
+  --seat-turn:   #f5b400;   /* border: it's this player's turn */
+  --seat-next:   #1a1a1a;   /* border: this player is next */
+  --seat-you:    #c8412c;   /* background: this is you */
+
+  /* The four card colours, for the Wild colour choice */
+  --uno-red:     #d72600;
+  --uno-yellow:  #ecd407;
+  --uno-green:   #379711;
+  --uno-blue:    #0956bf;
+
+  /* Modal frame (drawn in CSS, not baked into the texture) */
+  --modal-border: 2px solid rgba(0, 0, 0, 0.55);
+  --modal-radius: 12px;
+  --modal-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--letterbox);
+  font-family: var(--font), serif;
+}
+
+[hidden] { display: none !important; }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* =========================================================
+   LOBBY & HOST — full-viewport table background (cover)
+   ========================================================= */
+.host,
+.lobby {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background-color: var(--letterbox);
+  background-image: var(--img-lobby-background);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: 50% 50%;
+}
+
+@media (orientation: portrait), (max-width: 700px) {
+  .host, .lobby { background-position: 68% 50%; }
+}
+
+/* =========================================================
+   MODAL — texture fills, frame drawn in CSS
+   ========================================================= */
+.modal {
+  width: min(100%, 34rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2.5rem 2rem 0.75rem;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+  border: var(--modal-border);
+  border-radius: var(--modal-radius);
+  box-shadow: var(--modal-shadow);
+  overflow: hidden;           /* keeps texture inside the rounded corners */
+  text-align: center;
+  position: relative;
+}
+
+/* Text colour is tied to the texture */
+.modal--card {
+  background-image: var(--img-card-stock);
+  background-color: #dddddd; /* fallback if texture fails to load */
+  color: var(--ink-dark);
+}
+
+.modal--walnut {
+  background-image: var(--img-walnut);
+  background-color: #4a2f1d; /* fallback */
+  color: var(--ink-light);
+  --btn-bg: #e9dfcf;
+  --btn-bg-hover: #ffffff;
+  --btn-ink: #2b1d12;
+}
+
+.modal__title {
+  margin: 0 0 1rem;
+  font-size: clamp(1.5rem, 1.2rem + 1.2vw, 2rem);
+  font-weight: 700;
+}
+
+.modal__intro {
+  margin: 0 0 2rem;
+  max-width: 28rem;
+  font-size: 1.125rem;
+  line-height: 1.45;
+}
+
+.modal__footer {
+  align-self: stretch;
+  margin-top: 3.5rem;
+  font-size: 0.8rem;
+  text-align: left;
+  opacity: 0.85;
+}
+
+.modal__close {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--btn-ink);
+  background: var(--btn-bg);
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.modal__close:hover { background: var(--btn-bg-hover); }
+.modal__close:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+/* =========================================================
+   FORM
+   ========================================================= */
+.host-form,
+.lobby-form {
+  width: min(100%, 27rem);
+  display: grid;
+  gap: 0.75rem;
+}
+
+.field {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font: inherit;
+  font-size: 1.2rem;
+  color: var(--field-ink);
+  background: var(--field-bg);
+  border: 1px solid var(--field-line);
+  border-radius: 0;
+}
+
+.field::placeholder { color: #9a9a9a; }
+
+.field[aria-invalid="true"] {
+  border-color: var(--error);
+  box-shadow: inset 0 0 0 1px var(--error);
+}
+
+.btn {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font: inherit;
+  font-size: 1.2rem;
+  color: var(--btn-ink);
+  background: var(--btn-bg);
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.host-form, .lobby-form .btn:first-of-type { margin-top: 0.25rem; }
+
+.btn:hover { background: var(--btn-bg-hover); }
+
+.field:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.form-error {
+  min-height: 1.5em;          /* reserves space so layout doesn't jump */
+  margin: 2.5rem 0 0;
+  font-size: 1.25rem;
+  color: var(--error);
+}
+
+/* =========================================================
+   GAME STAGE — fixed 16:9, letterboxed
+   Everything inside is placed in stage percentages so it
+   stays locked to the felt at any window size.
+   ========================================================= */
+.stage-frame {
+  width: 100vw;
+  height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: var(--letterbox);
+  overflow: hidden;
+}
+
+.stage {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  width: min(100vw, 177.78vh);
+  background-image: var(--img-table);
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  container-type: inline-size;   /* lets children size text in cqw */
+}
+
+@supports (height: 100dvh) {
+  .stage { width: min(100vw, 177.78dvh); }
+}
+
+/* Inside the stage, `cqw` is 1% of the stage's width, so every size below
+   scales with the table. Positions are % of the stage; the felt spans
+   roughly x 28–72%, y 31–67% of Game_Background.webp. */
+/* :where() keeps this reset as weak as a bare `p`, so any class can override it */
+:where(.stage) :is(p, h2) { margin: 0; }
+
+/* ---------- Players around the table ---------- */
+.seats {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.seat {
+  position: absolute;
+  width: 9cqw;
+}
+
+/* Clockwise from the bottom left, like the wireframe */
+.seat--1  { left: 3%;    top: 56.5%; }
+.seat--2  { left: 3%;    top: 30.5%; }
+.seat--3  { left: 11%;   top: 2%; }
+.seat--4  { left: 24.8%; top: 2%; }
+.seat--5  { left: 38.6%; top: 2%; }
+.seat--6  { left: 52.4%; top: 2%; }
+.seat--7  { left: 66.2%; top: 2%; }
+.seat--8  { left: 80%;   top: 2%; }
+.seat--9  { left: 88%;   top: 30.5%; }
+.seat--10 { left: 88%;   top: 56.5%; }
+
+.seat__score {
+  margin-bottom: 0.3cqw;
+  font-size: 0.95cqw;
+  color: var(--ink-light);
+}
+
+.player {
+  --player-pad: 0.45cqw;         /* the one gap: portrait to card edge, on every side */
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 0.15cqw 0.5cqw;
+  padding: var(--player-pad);
+  color: var(--ink-dark);
+  text-align: center;
+  background-color: #e6d6bb;
+  background-image: var(--img-card-stock);
+  background-size: cover;
+  /* Every card has the same border width; a player's state only changes its colour,
+     so all portraits stay the same size. */
+  border: 0.35cqw solid rgba(0, 0, 0, 0.35);
+  border-radius: 0.6cqw;
+  box-shadow: 0 0.4cqw 1cqw rgba(0, 0, 0, 0.5);
+}
+
+/* Fills the card's inner width, so its top, left and right gaps are all --player-pad */
+.player__avatar {
+  grid-column: 1 / -1;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 0.6cqw;      /* same corner as the player card it sits in */
+  object-fit: cover;
+  object-position: 50% 42%;
+  border: 0.15cqw solid rgba(0, 0, 0, 0.35);
+}
+
+.player__name { grid-column: 1 / -1; font-size: 1cqw; font-weight: 700; line-height: 1.1; }
+
+/* "Bot" and the card count sit side by side under the name, centred as a pair */
+.player__kind { justify-self: end; font-size: 0.8cqw; opacity: 0.8; }
+
+.player__cards {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 0.35cqw;
+  font-size: 0.95cqw;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.player__cards img { width: 1.1cqw; }
+
+/* "Playing" / "Next" chip, so the state isn't shown by colour alone */
+.player__tag {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -0.8cqw;
+  padding: 0.1cqw 0.5cqw;
+  font-size: 0.7cqw;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 0.3cqw;
+}
+
+/* Speech bubble for a player who has said UNO */
+.player__uno {
+  position: absolute;
+  top: -1.4cqw;
+  right: -0.9cqw;
+  padding: 0.25cqw 0.55cqw;
+  font-size: 0.85cqw;
+  font-weight: 800;
+  color: #1a1a1a;
+  background: var(--seat-turn);
+  border-radius: 0.5cqw;
+  box-shadow: 0 0.2cqw 0.5cqw rgba(0, 0, 0, 0.5);
+}
+
+.player__uno::after {
+  content: "";
+  position: absolute;
+  left: 0.6cqw;
+  bottom: -0.45cqw;
+  border: 0.25cqw solid transparent;
+  border-top-color: var(--seat-turn);
+  border-left-color: var(--seat-turn);
+}
+
+/* This is you */
+.player--you {
+  color: var(--btn-ink);
+  background: var(--seat-you);
+}
+
+/* It's this player's turn */
+.player--turn {
+  border-color: var(--seat-turn);
+  box-shadow: 0 0 1.2cqw rgba(245, 180, 0, 0.55), 0 0.4cqw 1cqw rgba(0, 0, 0, 0.5);
+}
+
+.player--turn .player__tag { color: #1a1a1a; background: var(--seat-turn); }
+
+/* This player is next */
+.player--next { border-color: var(--seat-next); }
+.player--next .player__tag { color: var(--btn-ink); background: var(--seat-next); }
+
+/* ---------- The table ---------- */
+.turn {
+  position: absolute;
+  left: 50%;
+  top: 32.5%;
+  transform: translateX(-50%);
+  font-size: 1.3cqw;
+  color: var(--ink-light);
+  text-shadow: 0 0.1cqw 0.4cqw rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+}
+
+.direction {
+  position: absolute;
+  top: 42%;
+  font-size: 4cqw;
+  line-height: 1;
+  color: var(--ink-light);
+  opacity: 0.85;
+  text-shadow: 0 0.2cqw 0.5cqw rgba(0, 0, 0, 0.7);
+}
+
+.direction--left  { left: 33.5%; }
+.direction--right { right: 32%; }
+
+.pile {
+  position: absolute;
+  top: 37.5%;
+  width: 6.2cqw;
+  padding: 0;
+  font: inherit;
+  background: none;
+  border: 0;
+}
+
+.pile img {
+  display: block;
+  width: 100%;
+  filter: drop-shadow(0 0.3cqw 0.5cqw rgba(0, 0, 0, 0.6));
+}
+
+.pile__label {
+  display: block;
+  margin-top: 0.3cqw;
+  font-size: 0.8cqw;
+  color: var(--ink-light);
+  text-align: center;
+  text-shadow: 0 0.1cqw 0.3cqw rgba(0, 0, 0, 0.8);
+}
+
+.pile--draw    { left: 43.2%; cursor: pointer; }
+.pile--discard { left: 51%; }
+
+/* Two offset cards behind the top one make the draw pile look like a stack */
+.pile--draw img {
+  box-shadow: 0.25cqw 0.25cqw 0 -0.05cqw #fff, 0.5cqw 0.5cqw 0 -0.1cqw #ddd;
+  border-radius: 0.9cqw;
+}
+
+.pile--draw:hover img { transform: translateY(-0.3cqw); }
+.pile--draw:disabled { cursor: default; }
+.pile--draw:disabled:hover img { transform: none; }
+
+.say-uno {
+  position: absolute;
+  left: 44%;
+  top: 58%;
+  transform: translateX(-50%);
+  padding: 0.5cqw 1.6cqw;
+  font: inherit;
+  font-size: 1.1cqw;
+  color: var(--btn-ink);
+  background: var(--btn-bg);
+  border: 0;
+  border-radius: 0.4cqw;
+  cursor: pointer;
+}
+
+.say-uno--catch { left: 56%; }
+
+.say-uno:hover { background: var(--btn-bg-hover); }
+
+/* ---------- Your side of the table ---------- */
+.you-bar {
+  position: absolute;
+  left: 15%;
+  right: 15%;
+  top: 72%;
+  display: flex;
+  align-items: center;
+  gap: 1.5cqw;
+  font-size: 1.3cqw;
+  color: var(--ink-light);
+}
+
+/* The lines either side of your name */
+.you-bar::before,
+.you-bar::after {
+  content: "";
+  flex: 1;
+  height: 0.2cqw;
+  background: rgba(243, 236, 224, 0.35);
+}
+
+.target-score {
+  position: absolute;
+  left: 3%;
+  bottom: 4%;
+  font-size: 1.1cqw;
+  color: var(--ink-light);
+}
+
+/* Game name and password in the top right corner, for inviting friends */
+.game-info {
+  position: absolute;
+  top: 3%;
+  right: 1.2%;
+  width: 8.6cqw;
+  margin: 0;
+  padding: 0.6cqw 0.7cqw 0.2cqw;
+  color: var(--ink-light);
+  background: rgba(0, 0, 0, 0.45);
+  border: 0.1cqw solid rgba(243, 236, 224, 0.25);
+  border-radius: 0.6cqw;
+}
+
+.game-info dt {
+  font-size: 0.7cqw;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+}
+
+.game-info dd {
+  margin: 0 0 0.5cqw;
+  font-size: 0.95cqw;
+  font-weight: 700;
+  overflow-wrap: anywhere;   /* a long name wraps inside the box */
+  user-select: all;          /* one click selects the whole value, ready to copy */
+}
+
+/* The fan of cards: each card takes 5.2cqw of room and overlaps the next.
+   Set --cards on .hand; past ~12 cards the hand hits its max width and the
+   cards overlap more instead of growing past the table. */
+.hand {
+  --card-width: 7cqw;
+  --card-step: 5.2cqw;
+  position: absolute;
+  left: 50%;
+  bottom: 1%;
+  transform: translateX(-50%);
+  width: min(62cqw, calc(var(--cards, 7) * var(--card-step) + var(--card-width) - var(--card-step)));
+  display: flex;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hand li { flex: 0 1 var(--card-step); min-width: 0; }
+.hand li:last-child { flex: 0 0 var(--card-width); }
+
+.hand__card {
+  display: block;
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+
+.hand__card img {
+  display: block;
+  width: var(--card-width);
+  filter: drop-shadow(-0.2cqw 0.2cqw 0.4cqw rgba(0, 0, 0, 0.55));
+}
+
+/* Lift a playable card when you point at it */
+.hand__card:hover:not(:disabled),
+.hand__card:focus-visible { transform: translateY(-1.6cqw); }
+
+.hand__card:focus-visible { outline: none; }
+.hand__card:focus-visible img { outline: 0.25cqw solid var(--focus); outline-offset: 0.1cqw; border-radius: 0.9cqw; }
+
+/* Cards you can't play right now */
+.hand__card:disabled { cursor: not-allowed; }
+.hand__card:disabled img { filter: brightness(0.5) drop-shadow(-0.2cqw 0.2cqw 0.4cqw rgba(0, 0, 0, 0.55)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .hand__card { transition: none; }
+}
+
+/* ---------- Modals over the table ---------- */
+.stage__overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.stage .modal {
+  width: 40cqw;
+  padding: 2.2cqw 2.8cqw 2cqw;
+  font-size: 1.1cqw;
+}
+
+.stage .modal__title { margin-bottom: 0.6cqw; font-size: 1.8cqw; }
+
+.stage .btn {
+  padding: 0.8cqw 1cqw;
+  font-size: 1.2cqw;
+  border-radius: 0.4cqw;
+}
+
+.winner {
+  margin-bottom: 1.4cqw;
+  font-size: 3.4cqw;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+/* The scores, highest first. Scrolls if all ten players don't fit. */
+.scoreboard-wrap {
+  align-self: stretch;
+  max-height: 20cqw;
+  margin-bottom: 1.4cqw;
+  overflow-y: auto;
+  background: rgba(255, 255, 255, 0.35);
+  border: 0.1cqw solid rgba(0, 0, 0, 0.3);
+}
+
+.scoreboard {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1.1cqw;
+  font-variant-numeric: tabular-nums;
+}
+
+.scoreboard th,
+.scoreboard td {
+  padding: 0.45cqw 0.9cqw;
+  text-align: left;
+  border-bottom: 0.08cqw solid rgba(0, 0, 0, 0.15);
+}
+
+.scoreboard th {
+  position: sticky;
+  top: 0;
+  font-size: 0.85cqw;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: #e2d3b8;
+}
+
+.scoreboard th:last-child,
+.scoreboard td:last-child { text-align: right; }
+
+.scoreboard__row--winner td { font-weight: 700; background: rgba(245, 180, 0, 0.35); }
+
+.scoreboard__gain {
+  margin-left: 0.4cqw;
+  font-size: 0.85cqw;
+  font-weight: 700;
+  color: #2f6e12;
+}
+
+/* Colour choice after a Wild card */
+.color-choices {
+  align-self: stretch;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1cqw;
+  margin-top: 0.6cqw;
+}
+
+.color-choice {
+  aspect-ratio: 2 / 1;
+  font: inherit;
+  font-size: 1.3cqw;
+  font-weight: 700;
+  color: #fff;
+  border: 0.2cqw solid rgba(255, 255, 255, 0.85);
+  border-radius: 0.8cqw;
+  text-shadow: 0 0.1cqw 0.3cqw rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+}
+
+.color-choice:hover { filter: brightness(1.12); }
+.color-choice:focus-visible { outline: 0.25cqw solid var(--focus); outline-offset: 0.2cqw; }
+
+.color-choice--red    { background: var(--uno-red); }
+.color-choice--yellow { background: var(--uno-yellow); color: #2b2b2b; text-shadow: none; }
+.color-choice--green  { background: var(--uno-green); }
+.color-choice--blue   { background: var(--uno-blue); }
+
+.summary {
+  width: min(100%, 27rem);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem 1.5rem;
+  margin: 0 0 1.5rem;
+  text-align: left;
+}
+
+.summary dt { font-weight: 700; font-size: 1.15rem; }
+
+.summary dd {
+  margin: 0;
+  font-size: 1.15rem;
+  justify-self: end;
+  overflow-wrap: anywhere;          /* a long name wraps instead of pushing the layout wide */
+}
+
+.summary__secret { display: flex; align-items: center; gap: 0.5rem; }
+
+.summary__toggle {
+  font: inherit;
+  font-size: 0.85rem;
+  padding: 0.2rem 0.6rem;
+  color: var(--btn-ink);
+  background: var(--btn-bg);
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
