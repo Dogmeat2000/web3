@@ -1,6 +1,7 @@
 import { ApolloServer } from '@apollo/server'
 import { expressMiddleware } from '@as-integrations/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
+
 import express from 'express';
 import bodyParser from 'body-parser'
 import http from 'http';
@@ -8,6 +9,8 @@ import {promises as fs} from 'fs'
 import * as Resolver from './resolvers.js'
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -19,13 +22,10 @@ async function startServer() {
           ${content}`
         const resolvers = {
             Query: {
-                searchBooks: Resolver.searchBooks,
-                customerOrders: Resolver.customerOrders
+                //TODO: ADD
             },
-            Order: Resolver.orderFields,
             Mutation: {
-                createOneClickOrder: Resolver.createOneClickOrder,
-                applyPriceReduction: Resolver.applyPriceReduction
+                // TODO: ADD
             }
         }
 
@@ -37,9 +37,6 @@ async function startServer() {
           res.header("Access-Control-Allow-Methods", "GET, POST, PATCH");
           next();
         })
-
-        const staticPath = path.join(__dirname, '../static');
-        app.use('/frontend', express.static(staticPath))
 
         const httpServer = http.createServer(app)
         const server = new ApolloServer({
@@ -54,7 +51,6 @@ async function startServer() {
         //startStandaloneServer starts a server with good defaults for test/development
         httpServer.listen({ port: 4000 }, () => {
             console.log(`GraphQL server ready on http://localhost:4000/graphql`);
-            console.log(`Frontend Dashboard: http://localhost:4000/frontend/index.html`);
         })
     } catch (err) {
         console.error(`Error: ${err}`)

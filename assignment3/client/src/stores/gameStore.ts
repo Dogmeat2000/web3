@@ -49,6 +49,9 @@ export const useGameStore = defineStore('game', () => {
    */
   function joinGame({ name, password }: GameCredentials): boolean {
     error.value = null
+
+    // TODO: Fetch server for game details
+
     const current = settings.value
 
     if (game.value === null || current === null || !sameName(current.name, name) || current.password !== password) {
@@ -79,6 +82,8 @@ export const useGameStore = defineStore('game', () => {
 
     settings.value = { ...newSettings, name: newSettings.name.trim() }
     pendingHost.value = null
+
+    // TODO: Transmit game to server for creation
     return true
   }
 

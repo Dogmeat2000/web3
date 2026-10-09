@@ -1,67 +1,21 @@
-type Book {
+type Player {
     id: ID!
-    title: String!
-    rrp: Float!
-    isbn10: String
-    categoryNames: [String]
-    characters: [CharacterType]
+    playerName: String
+    pendingGames: Float
+    activeGames: String
+    finishedGames: [String]
 }
 
-type BookListing {
+type Game {
     id: ID!
-    beforePrice: Float!
-    afterPrice: Float!
-    currency: String!
-    quantity: Int!
-    title: String!
-    format: String!
-}
-
-type CharacterType {
-    name: String!
-    description: String
-}
-
-type Order {
-    id: ID!
-    orderDate: String!
-    customerEmail: String!
-    orderItems: [OrderItem!]!
-    totalPrice: Float!
-    bookCount: Int!
-}
-
-input AddressInput {
-    streetName: String!
-    streetNumber: String!
-    city: String!
-    zip: String!
-    country: CountryInput!
-    deliveryPhone: DeliveryPhoneInput!
-}
-
-input DeliveryPhoneInput {
-    primaryMobileNumber: String!
-    primaryMobileCountryCode: String!
-}
-
-input CountryInput {
-    name: String!
-    abbreviation: String!
-}
-
-type OrderItem {
-    bookId: ID!
-    bookTitle: String!
-    priceAtPurchase: Float!
 }
 
 type Query {
-    searchBooks(searchTerm: String!): [Book!]!
-    customerOrders(email: String!): [Order!]!
+    #searchBooks(searchTerm: String!): [Game!]!
+    #customerOrders(email: String!): [String!]!
 }
 
 type Mutation {
-    createOneClickOrder(customerId: ID!, listingId: ID!, shippingAddress: AddressInput!): Order
-    applyPriceReduction(listingId: ID!, percentage: Float!): BookListing
+    #createOneClickOrder(customerId: ID!, listingId: ID!, shippingAddress: String!): String
+    #applyPriceReduction(listingId: ID!, percentage: Float!): String
 }
