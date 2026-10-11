@@ -1,13 +1,18 @@
-import { ref, shallowRef, triggerRef } from 'vue'
+import { computed, ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import type { Game } from '@domain/model/uno'
-import { type GameSettings } from '@/models/GameSettings'
+import type { Color } from '@domain/model/color.ts'
+import type { PublicGame } from '@domain/model/uno.dto.ts'
+import { toGame } from '@domain/model/uno.memento.ts'
+import { standardRandomizer, standardShuffler } from '@domain/utils/random_utils.ts'
+import type { GameSettings } from '@/models/GameSettings'
 import type { GameCredentials } from '@/models/GameCredentials.ts'
-import { GameImpl } from '@domain/model/uno.impl.ts'
+import { catchUno as sendCatchUno, disconnectGame, draw as sendDraw, hostAndWatch, joinAndWatch, play as sendPlay, sayUno as sendSayUno, startGame as sendStart } from '@/graphql/gameConnection.ts'
+import type { Round } from '@domain/model/round.ts'
+import type { Player } from '@domain/model/player.ts'
 
 /**
- * The store containing the game information about the game played in the local browser.
- * TODO: Migrate this to a server at a later date
+ * The game this browser is playing. The server owns the game and its rules.
  */
 export const useGameStore = defineStore('game', () => {
   // State:
@@ -17,83 +22,210 @@ export const useGameStore = defineStore('game', () => {
   const pendingHost = ref<GameCredentials | null>(null)
 
   /**
-   * What the current game was hosted with. `null` until a game is hosted.
+   * The game this browser hosts or has joined. `null` until then.
+   * This holds both game configuration and the game itself as a Memento.
    */
-  const settings = ref<GameSettings | null>(null)
+  const hostedGame = shallowRef<PublicGame | null>(null)
 
-  /**
-   * The domain model's game. `null` until a game is hosted.
-   */
-  const game = shallowRef<Game | null>(null) // `shallowRef` means Vue only reacts when the whole game is replaced.
+  /** The password of that game. The server never sends it back, so it is kept from the lobby. */
+  const password = ref<string>('')
 
-  /** Why the last action failed, worded for the player. */
+  /** ID of the local player in this browser. -1 until set. */
+  const localPlayerId = ref<number>(-1)
+
+  /** Error message. Populated when an error occurs. */
   const error = ref<string | null>(null)
 
-  /** Default names of all players */
-  const playerNames: string[] = ['Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6', 'Player7', 'Player8', 'Player9', 'Player10']
+  /**
+   * The currently played game, read from the received PublicGame but converted from its Memento form into an actual domain model object.
+   */
+  const currentGame = computed<Game | null>((): Game | null => {
+    if (hostedGame.value === null) {
+      return null
+    }
 
-  /** ID of the local player in this browser */
-  const localPlayerId = ref<number>(-1)
+    const game: Game = toGame(JSON.parse(hostedGame.value.state), standardShuffler, standardRandomizer)
+
+    // The memento does not say who has said UNO, so the server sends that beside it.
+    // TODO: I might consider updated the Memento to also have this info, since I realized the need for it during this assignment.
+    const round: Round | undefined = game.currentRound()
+
+    hostedGame.value.saidUno.forEach((said: boolean, playerId: number): void => {
+      const player: Player | undefined = round?.playerObj(playerId)
+
+      if (player) {
+        player.hasSaidUno = said
+      }
+    })
+    return game
+  })
+
+  /**
+   * Refreshes the currently shown game, when new game information is received from the server.
+   * Since both this browser as requests, as well as server message, go through this, we need to check which information
+   * is the most recent and drop out-dated information.
+   */
+  function refreshGame(update: PublicGame): void {
+    const shownGame: PublicGame | null = hostedGame.value
+    if (shownGame !== null && shownGame.id === update.id && update.version <= shownGame.version) {
+      return
+    }
+
+    hostedGame.value = update
+  }
+
+  /**
+   * Sends one request to the server and refreshes the game based on the received answer.
+   * A request the server refuses does not throw: the reason is kept in `error`, and the answer is `null`.
+   */
+  async function request(send: () => Promise<PublicGame>): Promise<PublicGame | null> {
+    error.value = null
+    try {
+      const answer: PublicGame = await send()
+      refreshGame(answer)
+      return answer
+    } catch (err) {
+      error.value = errorText(err)
+      return null
+    }
+  }
 
   // Actions:
   /**
-   * Action run on "Host Game" from the Lobby. It keeps the name and password for the host page.
+   * Action run on "Host Game" from the Lobby. It keeps the name and password for use on the host page.
    */
   function prepareHost(credentials: GameCredentials): void {
     pendingHost.value = { name: credentials.name.trim(), password: credentials.password }
   }
 
   /**
-   * Action run on "Join Game" from the lobby. It joins to a game hosted in this browser, if the name and password match.
-   * TODO: Implement this fully as part of Assignment3
+   * Action run on "Host Game" from the Host Game menu. Sets up the new game.
+   * Returns a promise that resolves to true if the game was successfully created/hosted. Otherwise, false.
    */
-  function joinGame({ name, password }: GameCredentials): boolean {
-    error.value = null
+  async function hostNewGame(settings: GameSettings): Promise<boolean> {
+    disconnectGame()
+    hostedGame.value = null
 
-    // TODO: Fetch server for game details
-
-    const current = settings.value
-
-    if (game.value === null || current === null || !sameName(current.name, name) || current.password !== password) {
-      error.value = 'No game matches that name and password.'
+    if ((await request((): Promise<PublicGame> => hostAndWatch(settings, refreshGame))) === null) {
       return false
     }
 
-    if (game.value.winner() !== undefined) {
-      error.value = `"${current.name}" has already finished. Host a new game to play again.`
+    password.value = settings.password
+    localPlayerId.value = 0
+    pendingHost.value = null
+
+    return true
+  }
+
+  /**
+   * Action run on "Join Game" from the lobby. It loads the named game and listens.
+   */
+  async function connectToGame(credentials: GameCredentials): Promise<boolean> {
+    const currentGame: PublicGame | null = hostedGame.value // If player already joined a game, that game will be stored here, so re-joining the same game doesn't give the player a new position.
+    const joinedGame: PublicGame | null = await request((): Promise<PublicGame> => joinAndWatch(credentials, currentGame?.id, refreshGame))
+
+    if (joinedGame === null) {
       return false
+    }
+
+    password.value = credentials.password
+    if (joinedGame.id !== currentGame?.id) {
+      localPlayerId.value = joinedGame.joinedPlayers.length - 1
     }
 
     return true
   }
 
   /**
-   * Action run on "Host Game" from the Host Game menu. It creates a new game hosted in this browser, based on the current settings in this store.
+   *  Starts the game.
+   *  This locks the game, so new players can't join and lets bots play as the remaining non-human players.
    */
-  function createGame(newSettings: GameSettings): boolean {
-    error.value = null
-
-    try {
-      game.value = new GameImpl(playerNames.slice(0, newSettings.playerCount), newSettings.targetScore)
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e)
+  async function startGame(): Promise<boolean> {
+    if (hostedGame.value?.status !== 'PENDING' || localPlayerId.value !== 0) {
       return false
     }
 
-    settings.value = { ...newSettings, name: newSettings.name.trim() }
-    pendingHost.value = null
+    const started: PublicGame | null = await sendGameAction(sendStart)
+    return started?.status === 'ACTIVE'
+  }
 
-    // TODO: Transmit game to server for creation
-    return true
+  /**
+   * Sends an action for the currently played/active game. The server answers with the updated game.
+   * This is a helper function for the async functions below
+   */
+  async function sendGameAction(send: (credentials: GameCredentials) => Promise<PublicGame>): Promise<PublicGame | null> {
+    if (hostedGame.value === null) {
+      return null
+    }
+
+    const credentials = { name: hostedGame.value.name, password: password.value }
+    return request((): Promise<PublicGame> => send(credentials))
+  }
+
+  /**
+   * Attempts to play a card from a player's hand, sharing this with the server.
+   * @param cardIndex Index position of the card to play, in that player's hand.
+   * @param namedColor The color the player names. Required for WILD and WILD DRAW cards, and not allowed with any other card.
+   * @param playerId The ID (i.e. index) of the player that plays the card. This is the local player, or one of its bots.
+   * @returns A promise that resolves to true if the server accepted the card. Otherwise, false, and the reason is kept in the `error` variable.
+   */
+  async function playCard(cardIndex: number, namedColor?: Color, playerId: number = localPlayerId.value): Promise<boolean> {
+    return (await sendGameAction((credentials: GameCredentials): Promise<PublicGame> => sendPlay(credentials, playerId, cardIndex, namedColor))) !== null
+  }
+
+  /**
+   * Attempts to draw from the draw pile, sharing this with the server.
+   * @param playerId The ID (i.e. index) of the player that draws. This is the local player, or one of its bots.
+   * @returns A promise that resolves to true if the server accepted the draw. Otherwise, false, and the reason is kept in the `error` variable.
+   */
+  async function drawCard(playerId: number = localPlayerId.value): Promise<boolean> {
+    return (await sendGameAction((credentials: GameCredentials): Promise<PublicGame> => sendDraw(credentials, playerId))) !== null
+  }
+
+  /**
+   * Attempts to say 'UNO' for a player, sharing this with the server.
+   * @param playerId The ID (i.e. index) of the player that says 'UNO'. This is the local player, or one of its bots.
+   * @returns A promise that resolves to true if the server accepted it. Otherwise, false, and the reason is kept in the `error` variable.
+   */
+  async function sayUno(playerId: number = localPlayerId.value): Promise<boolean> {
+    return (await sendGameAction((credentials: GameCredentials): Promise<PublicGame> => sendSayUno(credentials, playerId))) !== null
+  }
+
+  /**
+   * Attempts to call out whoever forgot to say 'UNO', sharing this with the server.
+   * @param playerId The ID (i.e. index) of the player that makes the accusation. This is the local player, or one of its bots.
+   * @returns A promise that resolves to true if the server handled the call. Otherwise, false, and the reason is kept in the `error` variable.
+   */
+  async function catchUno(playerId: number = localPlayerId.value): Promise<boolean> {
+    return (await sendGameAction((credentials: GameCredentials): Promise<PublicGame> => sendCatchUno(credentials, playerId))) !== null
   }
 
   function clearError(): void {
     error.value = null
   }
 
-  return { pendingHost, settings, localPlayerId, game, error, prepareHost, joinGame, createGame, clearError }
+  return {
+    pendingHost,
+    hostedGame: hostedGame,
+    password,
+    localPlayerId,
+    error,
+    game: currentGame,
+    prepareHost,
+    hostNewGame,
+    connectJoinAttempt: connectToGame,
+    startGame,
+    playCard,
+    drawCard,
+    sayUno,
+    catchUno,
+    clearError,
+  }
 })
 
-function sameName(a: string, b: string): boolean {
-  return a.trim().toLowerCase() === b.trim().toLowerCase()
+function errorText(err: unknown): string {
+  if (!(err instanceof Error) || err.message === '' || err.message.startsWith('Socket closed') || /fetch|network|ECONNREFUSED/i.test(err.message)) {
+    return 'Could not connect to the game server.'
+  }
+  return err.message
 }

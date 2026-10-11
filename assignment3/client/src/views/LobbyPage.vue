@@ -9,7 +9,7 @@ import type { GameCredentials } from '@/models/GameCredentials.ts'
 
 const router = useRouter()
 const gameStore = useGameStore()
-const { pendingHost, settings, error: gameError } = storeToRefs(gameStore)
+const { pendingHost, hostedGame, error: gameError } = storeToRefs(gameStore)
 
 const form = reactive<GameCredentials>({
   name: pendingHost.value?.name ?? '',
@@ -36,8 +36,8 @@ async function join(): Promise<void> {
     return
   }
 
-  if (gameStore.joinGame(form) && settings.value !== null) {
-    await router.push({ name: 'game', params: { name: settings.value.name } })
+  if ((await gameStore.connectJoinAttempt(form)) && hostedGame.value !== null) {
+    await router.push({ name: 'game', params: { name: hostedGame.value.name } })
   }
 }
 

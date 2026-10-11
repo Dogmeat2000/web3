@@ -10,14 +10,13 @@ const playerCounts = [2, 3, 4, 5, 6, 7, 8, 9, 10]
 
 const router = useRouter()
 const gameStore = useGameStore()
-const { pendingHost, settings, error: gameError } = storeToRefs(gameStore)
+const { pendingHost, hostedGame, error: gameError } = storeToRefs(gameStore)
 
 const form = reactive<GameSettings>({
   name: pendingHost.value?.name ?? '',
   password: pendingHost.value?.password ?? '',
   playerCount: 10,
   targetScore: 500,
-  joinedPlayers: {},
 })
 
 const fieldErrors = ref<SettingsErrors>({})
@@ -45,11 +44,8 @@ async function host(): Promise<void> {
     return
   }
 
-  if (gameStore.createGame(form) && settings.value !== null) {
-    gameStore.localPlayerId = 0
-    settings.value.joinedPlayers[0] = 'host'
-
-    await router.push({ name: 'game', params: { name: settings.value.name } })
+  if ((await gameStore.hostNewGame(form)) && hostedGame.value !== null) {
+    await router.push({ name: 'game', params: { name: hostedGame.value.name } })
   }
 }
 </script>

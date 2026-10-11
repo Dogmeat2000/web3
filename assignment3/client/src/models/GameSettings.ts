@@ -6,7 +6,6 @@ import type { GameCredentials } from '@/models/GameCredentials.ts'
 export interface GameSettings extends GameCredentials {
   playerCount: number
   targetScore: number
-  joinedPlayers: Record<number, string>
 }
 
 export const GAME_NAME_MAX_LENGTH = 30
