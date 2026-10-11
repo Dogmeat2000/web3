@@ -116,7 +116,7 @@ async function onExitClick(): Promise<void> {
             :isNext="nextPlayerId === playerId"
             :hasSaidUno="round?.playerObj(playerId)?.hasSaidUno ?? false"
             :isLocalPlayer="playerId === localPlayerId"
-            :hasSaidThisColor="hostedGame.namedColor?.player === playerId ? hostedGame.namedColor.color : undefined"
+            :hasSaidThisColor="hostedGame.namedColor?.playerId === playerId ? hostedGame.namedColor.color : undefined"
           />
         </li>
       </ol>

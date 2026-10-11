@@ -8,7 +8,7 @@ export type NamedColor = {
     /**
      * PlayerId of the naming player.
      */
-    player: number,
+    playerId: number,
 
     /**
      * Color chosen.

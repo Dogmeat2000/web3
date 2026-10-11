@@ -7,7 +7,18 @@ import { toGame } from '@domain/model/uno.memento.ts'
 import { standardRandomizer, standardShuffler } from '@domain/utils/random_utils.ts'
 import type { GameSettings } from '@/models/GameSettings'
 import type { GameCredentials } from '@/models/GameCredentials.ts'
-import { catchUno as sendCatchUno, disconnectGame, draw as sendDraw, hostAndWatch, joinAndWatch, play as sendPlay, sayUno as sendSayUno, startGame as sendStart } from '@/graphql/gameConnection.ts'
+import {
+  catchUno as sendCatchUno,
+  draw as sendDraw,
+  fetchGame,
+  hostGame,
+  joinGame,
+  play as sendPlay,
+  sayUno as sendSayUno,
+  startGame as sendStart,
+  subscribeToGame,
+  unsubscribeFromGame,
+} from '@/graphql/gameConnection.ts'
 import type { Round } from '@domain/model/round.ts'
 import type { Player } from '@domain/model/player.ts'
 
@@ -103,13 +114,14 @@ export const useGameStore = defineStore('game', () => {
    * Returns a promise that resolves to true if the game was successfully created/hosted. Otherwise, false.
    */
   async function hostNewGame(settings: GameSettings): Promise<boolean> {
-    disconnectGame()
+    unsubscribeFromGame()
     hostedGame.value = null
 
-    if ((await request((): Promise<PublicGame> => hostAndWatch(settings, refreshGame))) === null) {
+    if ((await request((): Promise<PublicGame> => hostGame(settings))) === null) {
       return false
     }
 
+    subscribeToGame(settings, refreshGame)
     password.value = settings.password
     localPlayerId.value = 0
     pendingHost.value = null
@@ -122,12 +134,17 @@ export const useGameStore = defineStore('game', () => {
    */
   async function connectToGame(credentials: GameCredentials): Promise<boolean> {
     const currentGame: PublicGame | null = hostedGame.value // If player already joined a game, that game will be stored here, so re-joining the same game doesn't give the player a new position.
-    const joinedGame: PublicGame | null = await request((): Promise<PublicGame> => joinAndWatch(credentials, currentGame?.id, refreshGame))
+
+    const joinedGame: PublicGame | null = await request(async (): Promise<PublicGame> => {
+      const foundGame: PublicGame = await fetchGame(credentials)
+      return foundGame.id === currentGame?.id ? foundGame : joinGame(credentials)
+    })
 
     if (joinedGame === null) {
       return false
     }
 
+    subscribeToGame(credentials, refreshGame)
     password.value = credentials.password
     if (joinedGame.id !== currentGame?.id) {
       localPlayerId.value = joinedGame.joinedPlayers.length - 1
