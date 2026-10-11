@@ -429,8 +429,9 @@ export class RoundImpl implements Round {
         }
 
         if(currentColor !== undefined) {
-            // Game Rule: Color must match top card of discard pile.
-            if(!hasColor(this._discardPileDeck.top()!, currentColor) || this._discardPileDeck.top()!.type === 'WILD DRAW' || this._discardPileDeck.top()!.type === 'WILD'){
+            // Game Rule: Color must match top card of discard pile. Unless it's a WILD or WILD DRAW, which has no color.
+            const topCard: Card = this._discardPileDeck.top()!
+            if('color' in topCard && !hasColor(topCard, currentColor)){
                 this.rollbackModifications(oldPlayers, oldDrawPileDeck, oldDiscardPileDeck, oldActiveColor)
                 throw new Error("The active color must match the top discard pile card's color - except if top card is WILD or WILD DRAW")
             }
