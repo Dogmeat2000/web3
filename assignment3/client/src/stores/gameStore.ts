@@ -2,11 +2,9 @@ import { computed, ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import type { Game } from '@domain/model/uno'
 import type { Color } from '@domain/model/color.ts'
-import type { PublicGame } from '@domain/model/uno.dto.ts'
+import type { GameCredentials, GameSettings, PublicGame } from '@domain/model/uno.dto.ts'
 import { toGame } from '@domain/model/uno.memento.ts'
 import { standardRandomizer, standardShuffler } from '@domain/utils/random_utils.ts'
-import type { GameSettings } from '@/models/GameSettings'
-import type { GameCredentials } from '@/models/GameCredentials.ts'
 import {
   catchUno as sendCatchUno,
   draw as sendDraw,
@@ -19,8 +17,6 @@ import {
   subscribeToGame,
   unsubscribeFromGame,
 } from '@/graphql/gameConnection.ts'
-import type { Round } from '@domain/model/round.ts'
-import type { Player } from '@domain/model/player.ts'
 
 /**
  * The game this browser is playing. The server owns the game and its rules.
@@ -55,20 +51,7 @@ export const useGameStore = defineStore('game', () => {
       return null
     }
 
-    const game: Game = toGame(JSON.parse(hostedGame.value.state), standardShuffler, standardRandomizer)
-
-    // The memento does not say who has said UNO, so the server sends that beside it.
-    // TODO: I might consider updated the Memento to also have this info, since I realized the need for it during this assignment.
-    const round: Round | undefined = game.currentRound()
-
-    hostedGame.value.saidUno.forEach((said: boolean, playerId: number): void => {
-      const player: Player | undefined = round?.playerObj(playerId)
-
-      if (player) {
-        player.hasSaidUno = said
-      }
-    })
-    return game
+    return toGame(hostedGame.value, standardShuffler, standardRandomizer)
   })
 
   /**

@@ -5,6 +5,9 @@
     "module": "preserve",
     "moduleResolution": "bundler",
     "types": ["node"],
+    "paths": {
+      "@domain/*": ["../domain/src/*"]
+    },
 
     "strict": true,
     "skipLibCheck": true,

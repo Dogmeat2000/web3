@@ -1,16 +1,43 @@
-import { describe, it, expect } from 'vitest'
-import { h, markRaw } from 'vue'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { h } from 'vue'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { GameImpl } from '@domain/model/uno.impl'
-import LobbyPage from '../LobbyPage.vue'
+import { GameImpl } from '@domain/model/uno.impl.ts'
+import LobbyPage from '../views/LobbyPage.vue'
 import { useGameStore } from '@/stores/gameStore.ts'
+import { fetchGame, joinGame, subscribeToGame } from '@/graphql/gameConnection.ts'
+import type { PublicGame } from '@domain/model/uno.dto.ts'
 
-/** Puts a game in the store, as the host page will once it exists. */
+vi.mock('@/graphql/gameConnection.ts', () => ({
+  fetchGame: vi.fn(),
+  hostGame: vi.fn(),
+  joinGame: vi.fn(),
+  subscribeToGame: vi.fn(),
+  startGame: vi.fn(),
+  play: vi.fn(),
+  draw: vi.fn(),
+  sayUno: vi.fn(),
+  catchUno: vi.fn(),
+  unsubscribeFromGame: vi.fn(),
+}))
+
+const hostedOnServer: PublicGame = {
+  ...new GameImpl(['Player1', 'Player2', 'Player3', 'Player4'], 500).toMemento(),
+  id: 'Friday Night',
+  name: 'Friday Night',
+  joinedPlayers: ['host'],
+  status: 'PENDING',
+  version: 0,
+  namedColor: null,
+  lastRound: null,
+}
+
+/** Puts a game in the store, as hosting one from this browser does. */
 function hostInStore(store: ReturnType<typeof useGameStore>) {
-  store.settings = { name: 'Friday Night', password: 'hunter2', playerCount: 4, targetScore: 500 }
-  store.game = markRaw(new GameImpl(['You', 'Bot 1', 'Bot 2', 'Bot 3'], 500))
+  store.hostedGame = hostedOnServer
+  store.password = 'hunter2'
+  store.localPlayerId = 0
 }
 
 /** Mounts the lobby with a real store and a real router kept in memory. */
@@ -48,6 +75,14 @@ async function mountLobby() {
 }
 
 describe('LobbyPage', () => {
+  beforeEach(() => {
+    vi.mocked(fetchGame).mockReset()
+    vi.mocked(joinGame).mockReset()
+    vi.mocked(subscribeToGame).mockReset()
+    vi.mocked(fetchGame).mockResolvedValue(hostedOnServer)
+    vi.mocked(joinGame).mockResolvedValue({ ...hostedOnServer, version: 1, joinedPlayers: ['host', 'player'] })
+  })
+
   it('asks for a game name first', async () => {
     const { wrapper, router, clickJoin, message } = await mountLobby()
 
@@ -94,16 +129,45 @@ describe('LobbyPage', () => {
     await fill('friday night', 'hunter2')
     await clickJoin()
 
+    expect(fetchGame).toHaveBeenCalledWith({ name: 'friday night', password: 'hunter2' })
+    expect(joinGame).not.toHaveBeenCalled()
+    expect(store.localPlayerId).toBe(0)
     expect(router.currentRoute.value.fullPath).toBe('/game/Friday%20Night')
   })
 
-  it('Join Game shows why it could not find the game and stays in the lobby', async () => {
+  it('Join Game enters the deal the server served', async () => {
+    const { router, store, fill, clickJoin } = await mountLobby()
+
+    await fill('Friday Night', 'hunter2')
+    await clickJoin()
+
+    expect(joinGame).toHaveBeenCalledWith({ name: 'Friday Night', password: 'hunter2' })
+    expect(store.game?.player(0)).toBe('Player1')
+    expect(store.localPlayerId).toBe(1)
+    expect(router.currentRoute.value.fullPath).toBe('/game/Friday%20Night')
+  })
+
+  it('Join Game stays in the lobby when the server rejects the attempt', async () => {
+    vi.mocked(fetchGame).mockRejectedValueOnce(new Error('No game matches that name and password.'))
+    const { router, fill, clickJoin, message } = await mountLobby()
+
+    await fill('Friday Night', 'hunter2')
+    await clickJoin()
+
+    expect(message()).toBe('No game matches that name and password.')
+    expect(router.currentRoute.value.name).toBe('lobby')
+  })
+
+  it('Join Game keeps the game held here when the server refuses the attempt', async () => {
+    vi.mocked(fetchGame).mockRejectedValueOnce(new Error('No game matches that name and password.'))
     const { router, store, fill, clickJoin, message } = await mountLobby()
     hostInStore(store)
 
     await fill('Friday Night', 'wrong')
     await clickJoin()
 
+    expect(store.hostedGame).toBe(hostedOnServer)
+    expect(subscribeToGame).not.toHaveBeenCalled()
     expect(message()).toBe('No game matches that name and password.')
     expect(router.currentRoute.value.name).toBe('lobby')
   })

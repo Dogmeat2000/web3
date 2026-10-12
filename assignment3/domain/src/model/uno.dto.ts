@@ -1,4 +1,17 @@
 import { Color } from "./color";
+import { GameMemento } from "./uno.memento";
+
+/** The name and password of a hosted game. Every request about that game carries them. */
+export type GameCredentials = {
+    name: string,
+    password: string
+}
+
+/** All game settings needed to host a game. */
+export type GameSettings = GameCredentials & {
+    playerCount: number,
+    targetScore: number
+}
 
 /** Pending games still accept players. Active games are being played. Finished games are over. */
 export type GameStatus = 'PENDING' | 'ACTIVE' | 'FINISHED'
@@ -37,23 +50,18 @@ export type RoundResult = {
 /**
  * A hosted game, publicly visible. Therefor the password is not included here, but must be validated against the server, directly.
  */
-export type PublicGame = {
-    /** Unique for every hosted game, so a new game that reuses a name is never mistaken for the old one. */
+export type PublicGame = GameMemento & {
     id: string,
     name: string,
-    playerCount: number,
-    targetScore: number,
+
+    /**
+     * One entry pr. person who has joined. Index positions correspond with playerIds in the game.
+     */
     joinedPlayers: string[],
     status: GameStatus,
 
     /** Counts every change to the game. A higher number is a newer game. */
     version: number,
-
-    /** The game, as the GameMemento JSON. */
-    state: string,
-
-    /** Includes one value pr. player, indicating which (if any) player has said UNO and which has not. Index positions correspond with playerIds in the game. */
-    saidUno: boolean[],
 
     namedColor: NamedColor | null,
     lastRound: RoundResult | null

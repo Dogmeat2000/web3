@@ -4,7 +4,8 @@ import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useGameStore } from '@/stores/gameStore.ts'
 import { storeToRefs } from 'pinia'
-import { type GameSettings, type SettingsErrors, validateGameSettings } from '@/models/GameSettings.ts'
+import { type SettingsErrors, validateGameSettings } from '@/models/GameSettings.ts'
+import type { GameSettings } from '@domain/model/uno.dto.ts'
 
 const playerCounts = [2, 3, 4, 5, 6, 7, 8, 9, 10]
 

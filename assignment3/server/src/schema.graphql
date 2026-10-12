@@ -6,16 +6,79 @@ type Player {
     finishedGames: [String]
 }
 
+enum GameStatus {
+    PENDING
+    ACTIVE
+    FINISHED
+}
+
+enum Color {
+    BLUE
+    RED
+    GREEN
+    YELLOW
+}
+
+type NamedColor {
+    playerId: Int!
+    color: Color!
+}
+
+type RoundResult {
+    roundsPlayed: Int!
+    winner: Int!
+    addedScore: Int!
+}
+
+type Card {
+    type: String!
+    color: Color
+    number: Int
+}
+
+type Round {
+    players: [String!]!
+    hands: [[Card!]!]!
+    drawPile: [Card!]!
+    discardPile: [Card!]!
+    currentColor: Color!
+    currentDirection: String!
+    dealer: Int!
+    playerInTurn: Int
+    saidUno: [Boolean!]
+    hasDrawn: [Boolean!]
+}
+
 type Game {
     id: ID!
+    name: String!
+    joinedPlayers: [String!]!
+    status: GameStatus!
+    version: Int!
+    namedColor: NamedColor
+    lastRound: RoundResult
+    players: [String!]!
+    currentRound: Round
+    targetScore: Int!
+    scores: [Int!]!
+    cardsPerPlayer: Int!
 }
 
 type Query {
-    #searchBooks(searchTerm: String!): [Game!]!
-    #customerOrders(email: String!): [String!]!
+    game(name: String!, password: String!): Game
 }
 
 type Mutation {
-    #createOneClickOrder(customerId: ID!, listingId: ID!, shippingAddress: String!): String
-    #applyPriceReduction(listingId: ID!, percentage: Float!): String
+    hostGame(name: String!, password: String!, playerCount: Int!, targetScore: Int!): Game!
+    joinGame(name: String!, password: String!): Game!
+    startGame(name: String!, password: String!): Game!
+
+    play(name: String!, password: String!, playerId: Int!, cardIndex: Int!, namedColor: Color): Game!
+    draw(name: String!, password: String!, playerId: Int!): Game!
+    sayUno(name: String!, password: String!, playerId: Int!): Game!
+    catchUno(name: String!, password: String!, playerId: Int!): Game!
+}
+
+type Subscription {
+    gameUpdated(name: String!, password: String!): Game!
 }

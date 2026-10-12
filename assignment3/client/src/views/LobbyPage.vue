@@ -5,7 +5,7 @@ import { storeToRefs } from 'pinia'
 import GameFooter from '@/components/shared/GameFooter.vue'
 import { useGameStore } from '@/stores/gameStore.ts'
 import { GAME_NAME_MAX_LENGTH, validateCredentials, type CredentialErrors } from '@/models/GameSettings'
-import type { GameCredentials } from '@/models/GameCredentials.ts'
+import type { GameCredentials } from '@domain/model/uno.dto.ts'
 
 const router = useRouter()
 const gameStore = useGameStore()

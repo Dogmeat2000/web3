@@ -12,22 +12,23 @@ import http from 'http'
 import { promises as fs } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { createGameResolvers } from './games.ts'
+import { createGameResolvers } from './resolvers.ts'
 import type { GameStore } from './game-store.ts'
 import { MemoryStore } from './memory-store.ts'
 import { ServerModel } from './server-model.ts'
+import {GraphQLSchema} from "graphql/type";
 
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
+const __filename: string = fileURLToPath(import.meta.url)
+const __dirname: string = path.dirname(__filename)
 
-async function startServer(store: GameStore) {
-    const port = Number(process.env.PORT ?? 4000)
+async function startServer(store: GameStore): Promise<void> {
+    const port: number = Number(process.env.PORT ?? 4000)
     const model = new ServerModel(store)
     const pubsub = new PubSub()
 
     try {
-        const content = await fs.readFile(path.join(__dirname, 'schema.graphql'), 'utf8')
-        const schema = makeExecutableSchema({ typeDefs: content, resolvers: createGameResolvers(model, pubsub) })
+        const content: string = await fs.readFile(path.join(__dirname, 'schema.graphql'), 'utf8')
+        const schema: GraphQLSchema = makeExecutableSchema({ typeDefs: content, resolvers: createGameResolvers(model, pubsub) })
 
         const app = express()
         const httpServer = http.createServer(app)
@@ -42,7 +43,7 @@ async function startServer(store: GameStore) {
                 {
                     async serverWillStart() {
                         return {
-                            async drainServer() {
+                            async drainServer(): Promise<void> {
                                 await serverCleanup.dispose()
                             },
                         }

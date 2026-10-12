@@ -1,25 +1,36 @@
 import { gql } from '@apollo/client'
 import { apolloClient } from '@/graphql/apolloClient.ts'
 import type { Color } from '@domain/model/color.ts'
-import type { PublicGame } from '@domain/model/uno.dto.ts'
-import type { GameCredentials } from '@/models/GameCredentials.ts'
-import type { GameSettings } from '@/models/GameSettings.ts'
+import type { GameCredentials, GameSettings, PublicGame } from '@domain/model/uno.dto.ts'
+
+const cardFields = `type color number`
 
 const gameFields = `
   id
   name
-  playerCount
-  targetScore
   joinedPlayers
   status
   version
-  state
-  saidUno
   namedColor { playerId color }
   lastRound { roundsPlayed winner addedScore }
+  players
+  targetScore
+  scores
+  cardsPerPlayer
+  currentRound {
+    players
+    hands { ${cardFields} }
+    drawPile { ${cardFields} }
+    discardPile { ${cardFields} }
+    currentColor
+    currentDirection
+    dealer
+    playerInTurn
+    saidUno
+    hasDrawn
+  }
 `
 
-// This is the active subscription that the local browser currently has to a server game.
 let subscription: { unsubscribe(): void } | null = null
 
 /**

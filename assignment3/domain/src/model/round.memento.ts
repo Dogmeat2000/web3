@@ -3,6 +3,7 @@ import { CardMemento, toCard } from "./deck.memento";
 import { Round } from "./round";
 import { RoundImpl } from "./round.impl";
 import { PlayerHand, PlayerHandImpl } from "./playerHand";
+import { Player } from "./player";
 import { DeckImpl } from "./deck.impl";
 import { Shuffler } from "../utils/random_utils";
 import { Card, validColors } from "./card";
@@ -16,7 +17,17 @@ export type RoundMemento = {
     currentColor: string,
     currentDirection: string,
     dealer: number,
-    playerInTurn?: number
+    playerInTurn?: number,
+
+    /**
+     * One value pr. player, indicating whether that player has said UNO. Index positions correspond with playerIds.
+     */
+    saidUno?: boolean[],
+
+    /**
+     * One value pr. player, indicating whether that player has drawn cards in their turn. Index positions correspond with playerIds.
+     */
+    hasDrawn?: boolean[]
 }
 
 /**
@@ -36,7 +47,22 @@ export function toRound(data: RoundMemento, shuffler: Shuffler<Card>): Round {
 
     const convertedRound: Round = new RoundImpl(playerNames, dealer, shuffler, 0, false)
     convertedRound.modifyRoundState(playerHands, drawPile, discardPile, currentColor, currentDirection, playerInTurn)
+    readPlayerFlags(data, convertedRound)
     return convertedRound
+}
+
+/**
+ * Restores which players have said UNO, and which have drawn cards in their turn.
+ */
+function readPlayerFlags(data: RoundMemento, round: Round): void {
+    for (let i: number = 0; i < data.players.length; i++) {
+        const player: Player | undefined = round.playerObj(i)
+
+        if(player !== undefined) {
+            player.hasSaidUno = data.saidUno?.[i] ?? false
+            player.hasDrawnCardInTurn = data.hasDrawn?.[i] ?? false
+        }
+    }
 }
 
 function readPlayerNames(data: RoundMemento): string[] {

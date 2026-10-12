@@ -1,12 +1,4 @@
-import type { GameCredentials } from '@/models/GameCredentials.ts'
-
-/**
- * All game settings needed to host a game.
- */
-export interface GameSettings extends GameCredentials {
-  playerCount: number
-  targetScore: number
-}
+import type { GameCredentials, GameSettings } from '@domain/model/uno.dto.ts'
 
 export const GAME_NAME_MAX_LENGTH = 30
 

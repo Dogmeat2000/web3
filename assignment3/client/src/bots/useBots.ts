@@ -33,7 +33,7 @@ export function useBots(paused: Ref<boolean>): void {
 
     // The people who joined sit in the first player positions. Bots are only created for the un-filled positions.
     // TODO: I might consider randomly assigning the character a new joining player receives, to increase the fun/challenge a bit.
-    for (let playerId = currentGame.joinedPlayers.length; playerId < currentGame.playerCount; playerId++) {
+    for (let playerId = currentGame.joinedPlayers.length; playerId < currentGame.players.length; playerId++) {
       workers.set(playerId, new Worker(new URL('./bot.worker.ts', import.meta.url), { type: 'module' }))
     }
   }

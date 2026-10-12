@@ -1,4 +1,4 @@
-import type { PublicGame } from '../../domain/src/model/uno.dto.ts'
+import type { PublicGame } from '@domain/model/uno.dto.ts'
 
 /**
  * Describes the data that is stored about a game. This is not the live game,
@@ -6,11 +6,6 @@ import type { PublicGame } from '../../domain/src/model/uno.dto.ts'
  */
 export interface StoredGame extends PublicGame {
     password: string
-
-    /** Used to check whether a player has drawn in their turn, or not,
-     * since drawing a card allows a player to play that card immediately if it is playable.
-     */
-    hasDrawn: boolean[]
 }
 
 /**

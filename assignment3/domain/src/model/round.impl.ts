@@ -370,7 +370,7 @@ export class RoundImpl implements Round {
     }
 
     toMemento(): RoundMemento {
-        return {
+        const memento: RoundMemento = {
             players: this._players.map(p => p.playerName),
             hands: this._players.map(p => p.hand.cards.map(c => ({ ...c }))),
             drawPile: this._drawPileDeck.toMemento(),
@@ -380,6 +380,18 @@ export class RoundImpl implements Round {
             dealer: this._dealer.playerId,
             playerInTurn: this._activePlayer.playerId
         }
+
+        // The two lists below are only written when a player has the flag set.
+        // That way, a Round where nobody has said UNO or drawn keeps the exact memento it always had.
+        const saidUno: boolean[] = this._players.map(p => p.hasSaidUno)
+        if(saidUno.includes(true))
+            memento.saidUno = saidUno
+
+        const hasDrawn: boolean[] = this._players.map(p => p.hasDrawnCardInTurn)
+        if(hasDrawn.includes(true))
+            memento.hasDrawn = hasDrawn
+
+        return memento
     }
 
     playDirection(): 'counterclockwise' | 'clockwise' {
