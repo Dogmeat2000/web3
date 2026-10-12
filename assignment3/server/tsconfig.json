@@ -2,8 +2,8 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022"],
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
+    "module": "preserve",
+    "moduleResolution": "bundler",
     "types": ["node"],
 
     "strict": true,
@@ -14,9 +14,7 @@
     "checkJs": false,
 
     "noEmit": true,
-    "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "erasableSyntaxOnly": true
+    "allowImportingTsExtensions": true
   },
   "include": ["src"]
 }

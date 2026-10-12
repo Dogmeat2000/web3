@@ -38,6 +38,7 @@ export type RoundResult = {
  * A hosted game, publicly visible. Therefor the password is not included here, but must be validated against the server, directly.
  */
 export type PublicGame = {
+    /** Unique for every hosted game, so a new game that reuses a name is never mistaken for the old one. */
     id: string,
     name: string,
     playerCount: number,
