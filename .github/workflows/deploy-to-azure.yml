@@ -1,16 +1,24 @@
 # 100% AI generated!
 # Shared steps: tests and builds one assignment, and deploys it to its own Azure App Service.
-# This workflow does not start by itself. Each assignment has a small workflow of its own that calls it
-# (see deploy-assignment3.yml), so the assignments are deployed separately and can be deployed at the same time.
+#
+# It is started in two ways:
+#   - by the small workflow each assignment has (see deploy-assignment3.yml), when that assignment changes on main
+#   - by hand from the Actions page: choose "Run workflow" and pick the assignment to deploy
 #
 # What an assignment folder must look like to be deployed by this:
 #   client/        "npm run build" puts the built page in client/dist
 #   server/        "npm ci --omit=dev" installs everything the server needs to run
 #   domain/        "npm test" runs its tests; the server imports the code in domain/src
 #   package.json   "npm start" starts the server, which also serves client/dist
+#
+# Settings each assignment needs in the GitHub repository (Settings > Secrets and variables > Actions).
+# For assignment3 they are:
+#   variable  AZURE_WEBAPP_NAME_ASSIGNMENT3       the name of the App Service
+#   secret    AZURE_PUBLISH_PROFILE_ASSIGNMENT3   the content of the publish profile downloaded from that App Service
 name: Deploy an assignment to Azure
 
 on:
+  # Started by the workflow of an assignment, which hands over what to deploy and where.
   workflow_call:
     inputs:
       assignment:
@@ -26,9 +34,25 @@ on:
         description: The content of the publish profile downloaded from that App Service
         required: true
 
+  # Started by hand. Every assignment that can be deployed is listed here.
+  workflow_dispatch:
+    inputs:
+      assignment:
+        description: The assignment to deploy
+        required: true
+        type: choice
+        options:
+          - assignment3
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    # A newer deploy of the same assignment waits for the one that is running. Other assignments are not affected.
+    concurrency:
+      group: deploy-${{ inputs.assignment }}
+      cancel-in-progress: false
+
     steps:
       - uses: actions/checkout@v4
 
@@ -64,9 +88,11 @@ jobs:
           cp -r domain/src deploy/domain/src
           cp -r client/dist deploy/client/dist
 
+      # Started by an assignment's workflow, the app name and the publish profile are handed over by it.
+      # Started by hand, they are found by the name of the assignment (see the settings at the top of this file).
       - name: Deploy to Azure
         uses: azure/webapps-deploy@v3
         with:
-          app-name: ${{ inputs.app-name }}
-          publish-profile: ${{ secrets.publish-profile }}
+          app-name: ${{ inputs.app-name || vars[format('AZURE_WEBAPP_NAME_{0}', inputs.assignment)] }}
+          publish-profile: ${{ secrets.publish-profile || secrets[format('AZURE_PUBLISH_PROFILE_{0}', inputs.assignment)] }}
           package: ${{ inputs.assignment }}/deploy
