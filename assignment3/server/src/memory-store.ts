@@ -27,8 +27,14 @@ export class MemoryStore implements GameStore {
     async update(game: StoredGame): Promise<void> {
         const key: string = game.name.trim().toLowerCase()
 
-        if (!this.games.has(key)) {
+        const stored: StoredGame | undefined = this.games.get(key)
+
+        if (stored === undefined) {
             throw new Error(`No game named "${game.name}" is hosted.`)
+        }
+
+        if (stored.version !== game.version - 1) {
+            throw new Error(`"${game.name}" was changed by someone else at the same moment. Try again.`)
         }
 
         this.games.set(key, structuredClone(game))

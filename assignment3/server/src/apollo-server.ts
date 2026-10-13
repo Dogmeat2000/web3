@@ -15,6 +15,7 @@ import { fileURLToPath } from 'url'
 import { createGameResolvers } from './resolvers.ts'
 import type { GameStore } from './game-store.ts'
 import { MemoryStore } from './memory-store.ts'
+import connectMongoStore from './mongo-store.ts'
 import { ServerModel } from './server-model.ts'
 import {GraphQLSchema} from "graphql/type";
 
@@ -83,4 +84,23 @@ async function startServer(store: GameStore): Promise<void> {
     }
 }
 
-startServer(new MemoryStore())
+/**
+ * Selects which store to use.
+ * MongoDB is used, if environment variables are provided for this, otherwise it uses the in-menory-store.
+ */
+async function createGameStore(): Promise<GameStore> {
+    const connectionString: string = process.env.MONGODB_URI ?? ''
+
+    if (connectionString === '') {
+        console.warn('MONGODB_URI is not set: games are kept in memory, and are lost when the server stops.')
+        return new MemoryStore()
+    }
+
+    const databaseName: string = process.env.MONGODB_DATABASE || 'uno-assignment3'
+    const store: GameStore = await connectMongoStore(connectionString, databaseName)
+    console.log(`Games are saved in the MongoDB database "${databaseName}".`)
+
+    return store
+}
+
+startServer(await createGameStore())

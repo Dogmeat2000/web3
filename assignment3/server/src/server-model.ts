@@ -83,7 +83,7 @@ export class ServerModel {
         const hostName: string = enforceLowerCasePlayerName(playerName)
         const existing: StoredGame | undefined = await this.store.find(trimmedGameName)
 
-        if (existing !== undefined && existing.status !== 'FINISHED') {
+        if (existing !== undefined) {
             throw new Error(`A game named "${trimmedGameName}" is already hosted.`)
         }
 
@@ -101,11 +101,7 @@ export class ServerModel {
             lastRound: null,
         }
 
-        if (existing === undefined) {
-            await this.store.add(record)
-        } else {
-            await this.store.update(record)
-        }
+        await this.store.add(record)
 
         return record
     }

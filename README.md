@@ -1,6 +1,14 @@
 # WEB3
 Main Workbook for WEB3 (Fullstack Development) course assignments
 
+# Assignment 3: UNO in Vue.js with Object Oriented programming.
+Frontend uses vue.js. Backend uses apollo-server and Graphql.
+Persistence is done in mongodb.
+
+Play it here: https://uno3-d5h6hgh0f3dagtdc.germanywestcentral-01.azurewebsites.net/
+
+
+
 ## Credits
 UNO Cards (Public Domain): https://upload.wikimedia.org/wikipedia/commons/9/95/UNO_cards_deck.svg
 

@@ -65,7 +65,7 @@ async function host(): Promise<void> {
       <h1 class="modal__title" id="lobby-title">A Game of UNO</h1>
 
       <p class="modal__intro">
-        <strong>Welcome, {{ playerStore.playerName }}!</strong>
+        <strong>Welcome, {{ playerStore.playerName }}!</strong><br />
         Join a game by entering the name of a hosted game and its password, or host your own game and invite your friends.
       </p>
 

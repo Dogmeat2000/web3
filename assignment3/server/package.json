@@ -5,8 +5,8 @@
   "main": "apollo-server.ts",
   "type": "module",
   "scripts": {
-    "start": "tsx src/apollo-server.ts",
-    "dev": "tsx --watch src/apollo-server.ts"
+    "start": "tsx --env-file-if-exists=.env src/apollo-server.ts",
+    "dev": "tsx --watch --env-file-if-exists=.env src/apollo-server.ts"
   },
   "author_original_reference": "Ole I Hougaard",
   "concrete_adaptation_to_uno_game": "Kristian M. P. Dashnaw",
