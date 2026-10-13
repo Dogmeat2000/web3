@@ -31,15 +31,38 @@ export function createGameResolvers(model: ServerModel, pubsub: PubSub) {
         },
 
         Mutation: {
-            hostGame: (_: unknown, args: GameSettings): Promise<PublicGame> =>
-                publish(model.hostGame(args.name, args.password, args.playerCount, args.targetScore)),
+            hostGame: (_: unknown, args: GameSettings & { hostPlayerName: string }): Promise<PublicGame> =>
+                publish(
+                    model.hostGame(
+                        args.name,
+                        args.password,
+                        args.playerCount,
+                        args.targetScore,
+                        args.hostPlayerName
+                    )
+                ),
 
-            joinGame: (_: unknown, args: GameCredentials): Promise<PublicGame> => publish(model.joinGame(args.name, args.password)),
+            joinGame: (_: unknown, args: GameCredentials & { playerName: string }): Promise<PublicGame> =>
+                publish(
+                    model.joinGame(
+                        args.name,
+                        args.password,
+                        args.playerName
+                    )
+                ),
 
             startGame: (_: unknown, args: GameCredentials): Promise<PublicGame> => publish(model.startGame(args.name, args.password)),
 
             play: (_: unknown, args: PlayerPositionArgs & { cardIndex: number; namedColor?: Color | null }): Promise<PublicGame> =>
-                publish(model.play(args.name, args.password, args.playerId, args.cardIndex, args.namedColor ?? undefined)),
+                publish(
+                    model.play(
+                        args.name,
+                        args.password,
+                        args.playerId,
+                        args.cardIndex,
+                        args.namedColor ?? undefined
+                    )
+                ),
 
             draw: (_: unknown, args: PlayerPositionArgs): Promise<PublicGame> => publish(model.draw(args.name, args.password, args.playerId)),
 

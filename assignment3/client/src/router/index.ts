@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import LoginPage from '@/views/LoginPage.vue'
 import LobbyPage from '@/views/LobbyPage.vue'
 import HostPage from '@/views/HostPage.vue'
 import GamePage from '@/views/GamePage.vue'
@@ -8,6 +9,11 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      name: 'login',
+      component: LoginPage,
+    },
+    {
+      path: '/lobby',
       name: 'lobby',
       component: LobbyPage,
     },

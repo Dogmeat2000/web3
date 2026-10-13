@@ -5,6 +5,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { GameImpl } from '@domain/model/uno.impl.ts'
 import HostPage from '../views/HostPage.vue'
 import { useGameStore } from '@/stores/gameStore.ts'
+import { usePlayerStore } from '@/stores/playerStore.ts'
 import { hostGame, subscribeToGame } from '@/graphql/gameConnection.ts'
 import type { PublicGame } from '@domain/model/uno.dto.ts'
 
@@ -22,10 +23,10 @@ vi.mock('@/graphql/gameConnection.ts', () => ({
 }))
 
 const hostedOnServer: PublicGame = {
-  ...new GameImpl(['Player1', 'Player2', 'Player3', 'Player4'], 500).toMemento(),
+  ...new GameImpl(['anna', 'Player2', 'Player3', 'Player4'], 500).toMemento(),
   id: 'Friday Night',
   name: 'Friday Night',
-  joinedPlayers: ['host'],
+  joinedPlayers: ['anna'],
   status: 'PENDING',
   version: 0,
   namedColor: null,
@@ -46,6 +47,7 @@ async function mountHost() {
 
   const pinia = createPinia()
   setActivePinia(pinia)
+  usePlayerStore().playerName = 'anna'
   const store = useGameStore()
   store.prepareHost({ name: 'Friday Night', password: 'hunter2' })
 
@@ -71,7 +73,7 @@ describe('HostPage', () => {
 
     await host()
 
-    expect(hostGame).toHaveBeenCalledWith({ name: 'Friday Night', password: 'hunter2', playerCount: 10, targetScore: 500 })
+    expect(hostGame).toHaveBeenCalledWith({ name: 'Friday Night', password: 'hunter2', playerCount: 10, targetScore: 500 }, 'anna')
     expect(subscribeToGame).toHaveBeenCalledOnce()
     expect(store.localPlayerId).toBe(0)
     expect(store.game).not.toBeNull()

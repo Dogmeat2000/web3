@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { GameImpl } from '@domain/model/uno.impl.ts'
 import { useGameStore } from '../stores/gameStore.ts'
+import { usePlayerStore } from '@/stores/playerStore.ts'
 import { catchUno, draw, fetchGame, hostGame, joinGame, play, sayUno, startGame, subscribeToGame } from '@/graphql/gameConnection.ts'
 import type { PublicGame } from '@domain/model/uno.dto.ts'
 
@@ -24,7 +25,7 @@ function served(players: string[], changes: Partial<PublicGame> = {}): PublicGam
     ...new GameImpl(players, 500).toMemento(),
     id: 'game-1',
     name: 'Friday Night',
-    joinedPlayers: ['host'],
+    joinedPlayers: ['anna'],
     status: 'PENDING',
     version: 0,
     namedColor: null,
@@ -37,10 +38,11 @@ const hostSettings = { name: 'Friday Night', password: 'hunter2', playerCount: 4
 const credentials = { name: 'Friday Night', password: 'hunter2' }
 
 describe('game store', () => {
-  // A fresh Pinia per test, so no test sees another's game.
+  // A fresh Pinia per test, so no test sees another's game. The player in this browser is anna, unless a test chooses another name.
   beforeEach(() => {
     vi.resetAllMocks()
     setActivePinia(createPinia())
+    usePlayerStore().playerName = 'anna'
   })
 
   it('prepareHost keeps the trimmed name and the password for the host page', () => {
@@ -51,17 +53,18 @@ describe('game store', () => {
     expect(store.pendingHost).toEqual({ name: 'Friday Night', password: ' hunter2' })
   })
 
-  it('hostNewGame asks the server to deal, seats this browser as the host, and listens for updates', async () => {
-    vi.mocked(hostGame).mockResolvedValueOnce(served(['Player1', 'Player2', 'Player3', 'Player4']))
+  it('hostNewGame asks the server to deal under the chosen name, seats this browser as the host, and listens for updates', async () => {
+    vi.mocked(hostGame).mockResolvedValueOnce(served(['anna', 'Player2', 'Player3', 'Player4']))
     const store = useGameStore()
 
     await expect(store.hostNewGame(hostSettings)).resolves.toBe(true)
 
-    expect(hostGame).toHaveBeenCalledWith(hostSettings)
+    expect(hostGame).toHaveBeenCalledWith(hostSettings, 'anna')
     expect(subscribeToGame).toHaveBeenCalledWith(hostSettings, expect.any(Function))
-    expect(store.hostedGame).toMatchObject({ name: 'Friday Night', joinedPlayers: ['host'], status: 'PENDING' })
+    expect(store.hostedGame).toMatchObject({ name: 'Friday Night', joinedPlayers: ['anna'], status: 'PENDING' })
     expect(store.password).toBe('hunter2')
     expect(store.localPlayerId).toBe(0)
+    expect(store.game?.player(0)).toBe('anna')
     expect(store.game?.player(3)).toBe('Player4')
   })
 
@@ -89,25 +92,27 @@ describe('game store', () => {
       expect(subscribeToGame).not.toHaveBeenCalled()
     })
 
-    it('takes the next seat, rebuilds the game from the memento the server served, and listens for updates', async () => {
-      const joined = served(['Player1', 'Player2'], { version: 1, joinedPlayers: ['host', 'player'] })
-      vi.mocked(fetchGame).mockResolvedValueOnce(served(['Player1', 'Player2']))
+    it('joins under the chosen name, takes the next seat, rebuilds the game from the memento the server served, and listens for updates', async () => {
+      usePlayerStore().playerName = 'bo'
+      const joined = served(['anna', 'bo'], { version: 1, joinedPlayers: ['anna', 'bo'] })
+      vi.mocked(fetchGame).mockResolvedValueOnce(served(['anna', 'Player2']))
       vi.mocked(joinGame).mockResolvedValueOnce(joined)
       const store = useGameStore()
 
       await expect(store.connectJoinAttempt(credentials)).resolves.toBe(true)
 
-      expect(joinGame).toHaveBeenCalledWith(credentials)
+      expect(joinGame).toHaveBeenCalledWith(credentials, 'bo')
       expect(subscribeToGame).toHaveBeenCalledWith(credentials, expect.any(Function))
       expect(store.localPlayerId).toBe(1)
       expect(store.password).toBe('hunter2')
-      expect(store.game?.player(0)).toBe('Player1')
-      expect(store.game?.player(1)).toBe('Player2')
+      expect(store.game?.player(0)).toBe('anna')
+      expect(store.game?.player(1)).toBe('bo')
       expect(store.game?.currentRound()?.playerHand(0)).toEqual(joined.currentRound?.hands[0])
     })
 
     it('holds no game and does not listen when the game can be found but not joined', async () => {
-      vi.mocked(fetchGame).mockResolvedValueOnce(served(['Player1', 'Player2'], { status: 'ACTIVE' }))
+      usePlayerStore().playerName = 'bo'
+      vi.mocked(fetchGame).mockResolvedValueOnce(served(['anna', 'Player2'], { status: 'ACTIVE' }))
       vi.mocked(joinGame).mockRejectedValueOnce(new Error('"Friday Night" is active.'))
       const store = useGameStore()
 
@@ -118,10 +123,10 @@ describe('game store', () => {
       expect(subscribeToGame).not.toHaveBeenCalled()
     })
 
-    it('keeps its seat, without joining again, when this browser already holds the game', async () => {
-      const players = ['Player1', 'Player2', 'Player3', 'Player4']
+    it('keeps its seat, without joining again, when this player has already joined the game', async () => {
+      const players = ['anna', 'bo', 'cy', 'Player4']
       vi.mocked(hostGame).mockResolvedValueOnce(served(players))
-      vi.mocked(fetchGame).mockResolvedValueOnce(served(players, { version: 2, joinedPlayers: ['host', 'player', 'player'] }))
+      vi.mocked(fetchGame).mockResolvedValueOnce(served(players, { version: 2, joinedPlayers: ['anna', 'bo', 'cy'] }))
       const store = useGameStore()
       await store.hostNewGame(hostSettings)
 
@@ -131,14 +136,29 @@ describe('game store', () => {
       expect(store.localPlayerId).toBe(0)
       expect(store.hostedGame?.joinedPlayers).toHaveLength(3)
     })
+
+    it('returns to a game that is being played, as the player with the same name, in a browser that no longer holds the game', async () => {
+      usePlayerStore().playerName = 'bo'
+      vi.mocked(fetchGame).mockResolvedValueOnce(served(['anna', 'bo', 'Player3'], { version: 9, status: 'ACTIVE', joinedPlayers: ['anna', 'bo'] }))
+      const store = useGameStore()
+
+      await expect(store.connectJoinAttempt(credentials)).resolves.toBe(true)
+
+      expect(joinGame).not.toHaveBeenCalled()
+      expect(subscribeToGame).toHaveBeenCalledWith(credentials, expect.any(Function))
+      expect(store.localPlayerId).toBe(1)
+      expect(store.hostedGame?.status).toBe('ACTIVE')
+      expect(store.game?.player(1)).toBe('bo')
+    })
   })
 
   describe('games from the server', () => {
     /** A store that joined a game at version 3, and the function the subscription delivers updates with. */
     async function joinAndListen() {
       let push: (game: PublicGame) => void = () => {}
-      vi.mocked(fetchGame).mockResolvedValueOnce(served(['Player1', 'Player2'], { version: 2 }))
-      vi.mocked(joinGame).mockResolvedValueOnce(served(['Player1', 'Player2'], { version: 3, joinedPlayers: ['host', 'player'] }))
+      usePlayerStore().playerName = 'bo'
+      vi.mocked(fetchGame).mockResolvedValueOnce(served(['anna', 'Player2'], { version: 2 }))
+      vi.mocked(joinGame).mockResolvedValueOnce(served(['anna', 'bo'], { version: 3, joinedPlayers: ['anna', 'bo'] }))
       vi.mocked(subscribeToGame).mockImplementationOnce((_credentials, gameListener) => {
         push = gameListener
       })
@@ -154,18 +174,18 @@ describe('game store', () => {
       push(served(['Old', 'Reply'], { version: 2 }))
       expect(store.game).toBe(shown)
 
-      push(served(['Ann', 'Bo'], { version: 4, status: 'ACTIVE' }))
-      expect(store.game?.player(0)).toBe('Ann')
-      expect(store.game?.player(1)).toBe('Bo')
+      push(served(['ann', 'bo'], { version: 4, status: 'ACTIVE' }))
+      expect(store.game?.player(0)).toBe('ann')
+      expect(store.game?.player(1)).toBe('bo')
       expect(store.hostedGame?.status).toBe('ACTIVE')
     })
 
     it('shows another game whatever its version, because versions only compare within one game', async () => {
       const { store, push } = await joinAndListen()
 
-      push(served(['Cy', 'Di'], { id: 'game-2', version: 0 }))
+      push(served(['cy', 'di'], { id: 'game-2', version: 0 }))
 
-      expect(store.game?.player(0)).toBe('Cy')
+      expect(store.game?.player(0)).toBe('cy')
     })
 
     it('knows who has said UNO in the rebuilt game, because the memento carries it', async () => {
@@ -206,12 +226,12 @@ describe('game store', () => {
 
     it('playCard sends the move for the local seat and shows the game the server answers with', async () => {
       const store = await hostStarted()
-      vi.mocked(play).mockResolvedValueOnce(served(['Ann', 'Bo', 'Cy', 'Di'], { version: 2, status: 'ACTIVE' }))
+      vi.mocked(play).mockResolvedValueOnce(served(['ann', 'bo', 'cy', 'di'], { version: 2, status: 'ACTIVE' }))
 
       await expect(store.playCard(3)).resolves.toBe(true)
 
       expect(play).toHaveBeenCalledWith(credentials, 0, 3, undefined)
-      expect(store.game?.player(0)).toBe('Ann')
+      expect(store.game?.player(0)).toBe('ann')
     })
 
     it('playCard can name a color, and can move for a bot seat', async () => {

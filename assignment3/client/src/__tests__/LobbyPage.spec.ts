@@ -6,6 +6,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { GameImpl } from '@domain/model/uno.impl.ts'
 import LobbyPage from '../views/LobbyPage.vue'
 import { useGameStore } from '@/stores/gameStore.ts'
+import { usePlayerStore } from '@/stores/playerStore.ts'
 import { fetchGame, joinGame, subscribeToGame } from '@/graphql/gameConnection.ts'
 import type { PublicGame } from '@domain/model/uno.dto.ts'
 
@@ -23,10 +24,10 @@ vi.mock('@/graphql/gameConnection.ts', () => ({
 }))
 
 const hostedOnServer: PublicGame = {
-  ...new GameImpl(['Player1', 'Player2', 'Player3', 'Player4'], 500).toMemento(),
+  ...new GameImpl(['anna', 'Player2', 'Player3', 'Player4'], 500).toMemento(),
   id: 'Friday Night',
   name: 'Friday Night',
-  joinedPlayers: ['host'],
+  joinedPlayers: ['anna'],
   status: 'PENDING',
   version: 0,
   namedColor: null,
@@ -40,21 +41,23 @@ function hostInStore(store: ReturnType<typeof useGameStore>) {
   store.localPlayerId = 0
 }
 
-/** Mounts the lobby with a real store and a real router kept in memory. */
-async function mountLobby() {
+/** Mounts the lobby with real stores and a real router kept in memory, for a player who chose this name on the login page. */
+async function mountLobby(playerName: string = 'bo') {
   const router = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/', name: 'lobby', component: LobbyPage },
+      { path: '/', name: 'login', component: { render: () => h('p', 'login page') } },
+      { path: '/lobby', name: 'lobby', component: LobbyPage },
       { path: '/host', name: 'host', component: { render: () => h('p', 'host page') } },
       { path: '/game/:name', name: 'game', component: { render: () => h('p', 'game page') } },
     ],
   })
-  await router.push('/')
+  await router.push('/lobby')
   await router.isReady()
 
   const pinia = createPinia()
   setActivePinia(pinia)
+  usePlayerStore().playerName = playerName
   const wrapper = mount(LobbyPage, { global: { plugins: [pinia, router] } })
 
   const fill = async (name: string, password: string) => {
@@ -80,7 +83,20 @@ describe('LobbyPage', () => {
     vi.mocked(joinGame).mockReset()
     vi.mocked(subscribeToGame).mockReset()
     vi.mocked(fetchGame).mockResolvedValue(hostedOnServer)
-    vi.mocked(joinGame).mockResolvedValue({ ...hostedOnServer, version: 1, joinedPlayers: ['host', 'player'] })
+    vi.mocked(joinGame).mockResolvedValue({ ...hostedOnServer, version: 1, joinedPlayers: ['anna', 'bo'] })
+  })
+
+  it('sends a player who has not chosen a name to the login page', async () => {
+    const { router } = await mountLobby('')
+    await flushPromises()
+
+    expect(router.currentRoute.value.name).toBe('login')
+  })
+
+  it('welcomes the player by the chosen name', async () => {
+    const { wrapper } = await mountLobby('bo')
+
+    expect(wrapper.find('.modal__intro').text()).toContain('Welcome, bo!')
   })
 
   it('asks for a game name first', async () => {
@@ -122,9 +138,8 @@ describe('LobbyPage', () => {
     expect(store.pendingHost).toEqual({ name: 'Friday Night', password: 'hunter2' })
   })
 
-  it('Join Game returns to the game hosted in this browser', async () => {
-    const { router, store, fill, clickJoin } = await mountLobby()
-    hostInStore(store)
+  it('Join Game returns to a game this player has already joined, without joining it again', async () => {
+    const { router, store, fill, clickJoin } = await mountLobby('anna')
 
     await fill('friday night', 'hunter2')
     await clickJoin()
@@ -141,8 +156,8 @@ describe('LobbyPage', () => {
     await fill('Friday Night', 'hunter2')
     await clickJoin()
 
-    expect(joinGame).toHaveBeenCalledWith({ name: 'Friday Night', password: 'hunter2' })
-    expect(store.game?.player(0)).toBe('Player1')
+    expect(joinGame).toHaveBeenCalledWith({ name: 'Friday Night', password: 'hunter2' }, 'bo')
+    expect(store.game?.player(0)).toBe('anna')
     expect(store.localPlayerId).toBe(1)
     expect(router.currentRoute.value.fullPath).toBe('/game/Friday%20Night')
   })

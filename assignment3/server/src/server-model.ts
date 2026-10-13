@@ -8,7 +8,7 @@ import { standardRandomizer, standardShuffler } from '@domain/utils/random_utils
 import type { GameStore, StoredGame } from './game-store.ts'
 import {Game} from "@domain/model/uno.ts";
 
-/** Default names of all players */
+/** Default names of all players. These are use if player for some reason has no custom name (i.e. for bots) */
 const playerNames: string[] = ['Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6', 'Player7', 'Player8', 'Player9', 'Player10']
 
 /** A stored game that is being played, together with the domain Game and Round rebuilt from it. */
@@ -18,6 +18,19 @@ function requireTurn(round: Round, playerId: number): void {
     if (round.playerInTurn() !== playerId) {
         throw new Error("It is not that player's turn.")
     }
+}
+
+/**
+ * Returns the name a person chose for themselves, in lower case and without spaces around it.
+ */
+function enforceLowerCasePlayerName(playerName: string): string {
+    const lowerCasePlayerName: string = playerName.trim().toLowerCase()
+
+    if (lowerCasePlayerName === '') {
+        throw new Error('Please enter a name')
+    }
+
+    return lowerCasePlayerName
 }
 
 /**
@@ -47,9 +60,9 @@ export class ServerModel {
     }
 
     /**
-     * Creates a new game and places the host in it. Other players can join until it is started.
+     * Creates a new game and places the host in it, under the name the host chose. Other players can join until it is started.
      */
-    async hostGame(name: string, password: string, playerCount: number, targetScore: number): Promise<StoredGame> {
+    async hostGame(name: string, password: string, playerCount: number, targetScore: number, playerName: string): Promise<StoredGame> {
         const trimmedGameName: string = name.trim()
         if (trimmedGameName === '') {
             throw new Error('Enter the name of a game.')
@@ -67,19 +80,21 @@ export class ServerModel {
             throw new Error('Target score must be above 0')
         }
 
+        const hostName: string = enforceLowerCasePlayerName(playerName)
         const existing: StoredGame | undefined = await this.store.find(trimmedGameName)
 
         if (existing !== undefined && existing.status !== 'FINISHED') {
             throw new Error(`A game named "${trimmedGameName}" is already hosted.`)
         }
 
-        const game = new GameImpl(playerNames.slice(0, playerCount), targetScore)
+        // The host is always the first player.
+        const game = new GameImpl([hostName, ...playerNames.slice(1, playerCount)], targetScore)
         const record: StoredGame = {
             ...game.toMemento(),
             id: randomUUID(),
             name: trimmedGameName,
             password,
-            joinedPlayers: ['host'],
+            joinedPlayers: [hostName],
             status: 'PENDING',
             version: 0,
             namedColor: null,
@@ -98,14 +113,26 @@ export class ServerModel {
     /**
      * Allows other players to join a hosted AND pending game.
      */
-    async joinGame(name: string, password: string): Promise<StoredGame> {
+    async joinGame(name: string, password: string, playerName: string): Promise<StoredGame> {
         const record: StoredGame = await this.fetchGame(name, password, 'PENDING')
+        const joiningName: string = enforceLowerCasePlayerName(playerName)
 
         if (record.joinedPlayers.length >= record.players.length) {
             throw new Error(`"${record.name}" is already full.`)
         }
 
-        record.joinedPlayers.push('player')
+        // A name can only be used once in a game.
+        if (record.joinedPlayers.includes(joiningName)) {
+            throw new Error(`A player named "${joiningName}" has already joined "${record.name}".`)
+        }
+
+        const playerId: number = record.joinedPlayers.length
+        record.joinedPlayers.push(joiningName)
+        record.players[playerId] = joiningName
+
+        if (record.currentRound !== undefined) {
+            record.currentRound.players[playerId] = joiningName
+        }
 
         return this.save(record)
     }

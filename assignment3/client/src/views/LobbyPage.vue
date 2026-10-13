@@ -4,11 +4,13 @@ import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import GameFooter from '@/components/shared/GameFooter.vue'
 import { useGameStore } from '@/stores/gameStore.ts'
+import { usePlayerStore } from '@/stores/playerStore.ts'
 import { GAME_NAME_MAX_LENGTH, validateCredentials, type CredentialErrors } from '@/models/GameSettings'
 import type { GameCredentials } from '@domain/model/uno.dto.ts'
 
 const router = useRouter()
 const gameStore = useGameStore()
+const playerStore = usePlayerStore()
 const { pendingHost, hostedGame, error: gameError } = storeToRefs(gameStore)
 
 const form = reactive<GameCredentials>({
@@ -16,6 +18,10 @@ const form = reactive<GameCredentials>({
   password: pendingHost.value?.password ?? '',
 })
 const fieldErrors = ref<CredentialErrors>({})
+
+if (playerStore.playerName === '') {
+  router.replace({ name: 'login' })
+}
 
 gameStore.clearError()
 
@@ -54,9 +60,14 @@ async function host(): Promise<void> {
 <template>
   <main class="lobby" id="lobby-screen">
     <section class="modal modal--card" aria-labelledby="lobby-title">
+      <RouterLink :to="{ name: 'login' }" class="modal__close" aria-label="Back to choosing your name"> × </RouterLink>
+
       <h1 class="modal__title" id="lobby-title">A Game of UNO</h1>
 
-      <p class="modal__intro">Join a game by entering the name of a hosted game and its password, or host your own game and invite your friends.</p>
+      <p class="modal__intro">
+        <strong>Welcome, {{ playerStore.playerName }}!</strong>
+        Join a game by entering the name of a hosted game and its password, or host your own game and invite your friends.
+      </p>
 
       <form class="lobby-form" id="lobby-form" novalidate @submit.prevent="join">
         <!-- Game Name -->

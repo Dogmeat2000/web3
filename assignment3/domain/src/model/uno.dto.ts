@@ -55,7 +55,7 @@ export type PublicGame = GameMemento & {
     name: string,
 
     /**
-     * One entry pr. person who has joined. Index positions correspond with playerIds in the game.
+     * The names of the players who have joined. Index positions correspond with playerIds in the game.
      */
     joinedPlayers: string[],
     status: GameStatus,

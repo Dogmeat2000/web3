@@ -65,10 +65,11 @@ html, body {
 }
 
 /* =========================================================
-   LOBBY & HOST — full-viewport table background (cover)
+   LOGIN, LOBBY & HOST — full-viewport table background (cover)
    ========================================================= */
 .host,
-.lobby {
+.lobby,
+.login {
   min-height: 100dvh;
   display: grid;
   place-items: center;
@@ -81,7 +82,7 @@ html, body {
 }
 
 @media (orientation: portrait), (max-width: 700px) {
-  .host, .lobby { background-position: 68% 50%; }
+  .host, .lobby, .login { background-position: 68% 50%; }
 }
 
 /* =========================================================
@@ -164,7 +165,8 @@ html, body {
    FORM
    ========================================================= */
 .host-form,
-.lobby-form {
+.lobby-form,
+.login-form {
   width: min(100%, 27rem);
   display: grid;
   gap: 0.75rem;
@@ -201,7 +203,7 @@ html, body {
   transition: background-color 120ms ease;
 }
 
-.host-form, .lobby-form .btn:first-of-type { margin-top: 0.25rem; }
+.host-form, .lobby-form .btn:first-of-type, .login-form .btn:first-of-type { margin-top: 0.25rem; }
 
 .btn:hover { background: var(--btn-bg-hover); }
 
@@ -557,13 +559,14 @@ html, body {
    Set --cards on .hand; past ~12 cards the hand hits its max width and the
    cards overlap more instead of growing past the table. */
 .hand {
+  --cards: 7;                    /* default only: PlayerHand.vue sets the real number of cards on the element */
   --card-width: 7cqw;
   --card-step: 5.2cqw;
   position: absolute;
   left: 50%;
   bottom: 1%;
   transform: translateX(-50%);
-  width: min(62cqw, calc(var(--cards, 7) * var(--card-step) + var(--card-width) - var(--card-step)));
+  width: min(62cqw, calc(var(--cards) * var(--card-step) + var(--card-width) - var(--card-step)));
   display: flex;
   margin: 0;
   padding: 0;

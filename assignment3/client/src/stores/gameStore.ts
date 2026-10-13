@@ -5,6 +5,7 @@ import type { Color } from '@domain/model/color.ts'
 import type { GameCredentials, GameSettings, PublicGame } from '@domain/model/uno.dto.ts'
 import { toGame } from '@domain/model/uno.memento.ts'
 import { standardRandomizer, standardShuffler } from '@domain/utils/random_utils.ts'
+import { usePlayerStore } from '@/stores/playerStore.ts'
 import {
   catchUno as sendCatchUno,
   draw as sendDraw,
@@ -22,6 +23,8 @@ import {
  * The game this browser is playing. The server owns the game and its rules.
  */
 export const useGameStore = defineStore('game', () => {
+  const playerStore = usePlayerStore()
+
   // State:
   /**
    * Name and password carried from the lobby to the host page, which adds the other game settings.
@@ -100,7 +103,7 @@ export const useGameStore = defineStore('game', () => {
     unsubscribeFromGame()
     hostedGame.value = null
 
-    if ((await request((): Promise<PublicGame> => hostGame(settings))) === null) {
+    if ((await request((): Promise<PublicGame> => hostGame(settings, playerStore.playerName))) === null) {
       return false
     }
 
@@ -114,13 +117,14 @@ export const useGameStore = defineStore('game', () => {
 
   /**
    * Action run on "Join Game" from the lobby. It loads the named game and listens.
+   * A player who has already joined that game returns to it as the same player. Anyone else joins it as a new player.
    */
   async function connectToGame(credentials: GameCredentials): Promise<boolean> {
-    const currentGame: PublicGame | null = hostedGame.value // If player already joined a game, that game will be stored here, so re-joining the same game doesn't give the player a new position.
+    const playerName: string = playerStore.playerName
 
     const joinedGame: PublicGame | null = await request(async (): Promise<PublicGame> => {
       const foundGame: PublicGame = await fetchGame(credentials)
-      return foundGame.id === currentGame?.id ? foundGame : joinGame(credentials)
+      return foundGame.joinedPlayers.includes(playerName) ? foundGame : joinGame(credentials, playerName)
     })
 
     if (joinedGame === null) {
@@ -129,9 +133,7 @@ export const useGameStore = defineStore('game', () => {
 
     subscribeToGame(credentials, refreshGame)
     password.value = credentials.password
-    if (joinedGame.id !== currentGame?.id) {
-      localPlayerId.value = joinedGame.joinedPlayers.length - 1
-    }
+    localPlayerId.value = joinedGame.joinedPlayers.indexOf(playerName)
 
     return true
   }
