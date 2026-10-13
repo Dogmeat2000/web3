@@ -61,18 +61,18 @@ export async function hostGame({ name, password, playerCount, targetScore }: Gam
     $password: String!,
     $playerCount: Int!,
     $targetScore: Int!,
-    $playerName: String!
+    $hostPlayerName: String!
   ) {
     hostGame(
       name: $name,
       password: $password,
       playerCount: $playerCount,
       targetScore: $targetScore,
-      playerName: $playerName
+      hostPlayerName: $hostPlayerName
     )
     { ${gameFields} }
   }`
-  const { data } = await apolloClient.mutate({ mutation, variables: { name, password, playerCount, targetScore, playerName: hostPlayerName } })
+  const { data } = await apolloClient.mutate({ mutation, variables: { name, password, playerCount, targetScore, hostPlayerName } })
   const answer = data as { hostGame: PublicGame }
   return answer.hostGame
 }

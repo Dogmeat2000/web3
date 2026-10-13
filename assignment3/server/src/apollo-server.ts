@@ -9,7 +9,7 @@ import { PubSub } from 'graphql-subscriptions'
 import express from 'express'
 import bodyParser from 'body-parser'
 import http from 'http'
-import { promises as fs } from 'fs'
+import { promises as fs, existsSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { createGameResolvers } from './resolvers.ts'
@@ -66,6 +66,14 @@ async function startServer(store: GameStore): Promise<void> {
         app.use('/graphql', bodyParser.json())
         app.use('/graphql', expressMiddleware(server))
 
+        // Configure the apollo-server to also server the client
+        // This makes it simpler for me to deploy in the cloud!
+        const clientDir: string = path.join(__dirname, '../../client/dist')
+        if (existsSync(clientDir)) {
+            app.use(express.static(clientDir))
+            app.get('*', (_req, res) => res.sendFile(path.join(clientDir, 'index.html')))
+        }
+
         httpServer.listen({ port }, () => {
             console.log(`GraphQL server ready on http://localhost:${port}/graphql`)
             console.log(`Subscriptions ready on ws://localhost:${port}/graphql`)
@@ -75,5 +83,4 @@ async function startServer(store: GameStore): Promise<void> {
     }
 }
 
-// Games are kept in this process for now. A database store can be passed in here instead.
 startServer(new MemoryStore())

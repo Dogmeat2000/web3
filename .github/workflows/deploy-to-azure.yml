@@ -1,0 +1,72 @@
+# 100% AI generated!
+# Shared steps: tests and builds one assignment, and deploys it to its own Azure App Service.
+# This workflow does not start by itself. Each assignment has a small workflow of its own that calls it
+# (see deploy-assignment3.yml), so the assignments are deployed separately and can be deployed at the same time.
+#
+# What an assignment folder must look like to be deployed by this:
+#   client/        "npm run build" puts the built page in client/dist
+#   server/        "npm ci --omit=dev" installs everything the server needs to run
+#   domain/        "npm test" runs its tests; the server imports the code in domain/src
+#   package.json   "npm start" starts the server, which also serves client/dist
+name: Deploy an assignment to Azure
+
+on:
+  workflow_call:
+    inputs:
+      assignment:
+        description: The folder of the assignment, for example assignment3
+        required: true
+        type: string
+      app-name:
+        description: The name of the Azure App Service that runs this assignment
+        required: true
+        type: string
+    secrets:
+      publish-profile:
+        description: The content of the publish profile downloaded from that App Service
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Test the domain
+        working-directory: ${{ inputs.assignment }}/domain
+        run: |
+          npm ci
+          npm test
+
+      - name: Test and build the client
+        working-directory: ${{ inputs.assignment }}/client
+        run: |
+          npm ci
+          npx vitest run
+          npm run build
+
+      - name: Install what the server needs to run
+        working-directory: ${{ inputs.assignment }}/server
+        run: npm ci --omit=dev
+
+      # The server imports the domain from ../domain/src and serves the client from ../client/dist,
+      # so the three folders keep their places beside each other.
+      - name: Collect the files to deploy
+        working-directory: ${{ inputs.assignment }}
+        run: |
+          mkdir -p deploy/client deploy/domain
+          cp package.json deploy/
+          cp -r server deploy/server
+          cp -r domain/src deploy/domain/src
+          cp -r client/dist deploy/client/dist
+
+      - name: Deploy to Azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ inputs.app-name }}
+          publish-profile: ${{ secrets.publish-profile }}
+          package: ${{ inputs.assignment }}/deploy

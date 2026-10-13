@@ -1,0 +1,33 @@
+# 100% AI generated!
+# Deploys assignment 3 to its own Azure App Service, whenever something in assignment3/ changes on main.
+# It can also be started by hand from the Actions page.
+#
+# Needs two settings in the GitHub repository (Settings > Secrets and variables > Actions):
+#   variable  AZURE_WEBAPP_NAME_ASSIGNMENT3       the name of the App Service
+#   secret    AZURE_PUBLISH_PROFILE_ASSIGNMENT3   the content of the publish profile downloaded from that App Service
+#
+# To deploy another assignment as well: copy this file, replace "assignment3" and "ASSIGNMENT3" by the
+# other assignment everywhere in it, create an App Service for it, and add its two settings.
+name: Deploy assignment 3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assignment3/**'
+      - '.github/workflows/deploy-assignment3.yml'
+  workflow_dispatch:
+
+# A newer deploy of this assignment waits for the one that is running. Other assignments are not affected.
+concurrency:
+  group: deploy-assignment3
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy-to-azure.yml
+    with:
+      assignment: assignment3
+      app-name: ${{ vars.AZURE_WEBAPP_NAME_ASSIGNMENT3 }}
+    secrets:
+      publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_ASSIGNMENT3 }}

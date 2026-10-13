@@ -69,7 +69,7 @@ type Query {
 }
 
 type Mutation {
-    hostGame(name: String!, password: String!, playerCount: Int!, targetScore: Int!, playerName: String!): Game!
+    hostGame(name: String!, password: String!, playerCount: Int!, targetScore: Int!, hostPlayerName: String!): Game!
     joinGame(name: String!, password: String!, playerName: String!): Game!
     startGame(name: String!, password: String!): Game!
 

@@ -1,0 +1,8 @@
+{
+  "name": "uno-assignment3",
+  "private": true,
+  "description": "Starts the UNO server. When the client has been built, the server serves it too. This is what runs when the game is deployed.",
+  "scripts": {
+    "start": "cd server && node --import tsx src/apollo-server.ts"
+  }
+}
