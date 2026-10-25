@@ -1,5 +1,4 @@
-import { Card, Type } from "../../src/model/card";
-import { Color } from "../../src/model/color";
+import { Card, Color, Type } from '../../src/model/deck'
 
 export type CardPredicate = (_: Card | undefined) => boolean
 
@@ -28,7 +27,3 @@ export function is(spec: CardSpec): CardPredicate {
     }    
   }  
 }  
-
-export function not(pred: CardPredicate): CardPredicate {
-  return c => !pred(c)
-}
