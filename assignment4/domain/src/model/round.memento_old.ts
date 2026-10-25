@@ -1,5 +1,5 @@
 import { Deck_old } from "./deck_old";
-import { CardMemento, toCard } from "./deck.memento_old";
+import { CardMemento, toCard } from "./deck.memento";
 import { Round_old } from "./round_old";
 import { RoundImpl_old } from "./round.impl_old";
 import { PlayerHand_old, PlayerHandImpl } from "./playerHand_old";

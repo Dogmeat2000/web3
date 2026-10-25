@@ -1,5 +1,5 @@
 import { Shuffler } from "../utils/random_utils";
-import { DeckMemento_old, toCard } from "./deck.memento_old";
+import { DeckMemento, toCard } from "./deck.memento";
 import { DeckImpl_old } from "./deck.impl_old";
 import {Card_old, TypedCard} from "./card_old";
 import {Color_old} from "./color_old";
@@ -43,7 +43,7 @@ export interface Deck_old {
      * Converts this deck into a Memento type.
      * @returns The memento converted deck as a DeckMemento type.
      */
-    toMemento(): DeckMemento_old
+    toMemento(): DeckMemento
 }
 
 /**
@@ -77,6 +77,6 @@ export function hasColor(card: Card_old, color: Color_old): boolean {
  * @param memento A memento containing the serialized deck information.
  * @returns The
  * */
-export function fromMemento(memento: DeckMemento_old): Deck_old {
+export function fromMemento(memento: DeckMemento): Deck_old {
     return new DeckImpl_old(memento.map(toCard))
 }

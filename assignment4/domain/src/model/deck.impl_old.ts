@@ -1,6 +1,6 @@
 import { Deck_old } from "./deck_old";
 import { Shuffler } from "../utils/random_utils";
-import { DeckMemento_old } from "./deck.memento_old";
+import { DeckMemento } from "./deck.memento";
 import { Card_old, validCardNumbers } from "./card_old";
 import { Color_old } from "./color_old";
 
@@ -35,7 +35,7 @@ export class DeckImpl_old implements Deck_old {
         this._cards.push(card)
     }
 
-    toMemento(): DeckMemento_old {
+    toMemento(): DeckMemento {
         return this._cards.map(card => ({...card}))
     }
 
