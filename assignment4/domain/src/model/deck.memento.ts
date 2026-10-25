@@ -3,6 +3,7 @@ import { Card, Color, isColor, isNumber, TypedCard } from "./deck";
 export type CardMemento = Readonly<Record<string, string | number>>
 export type DeckMemento = Readonly<CardMemento[]>
 
+// Pure Functions
 /**
  * Converts a memento version of a card into an actual Card type
  */
