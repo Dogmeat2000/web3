@@ -1,13 +1,13 @@
-import { Card, TypedCard, validCardNumbers, validColors} from "./card";
-import { Color } from "./color";
+import { Card_old, TypedCard, validCardNumbers, validColors} from "./card_old";
+import { Color_old } from "./color_old";
 
 export type CardMemento = Record<string, string | number>
-export type DeckMemento = CardMemento[]
+export type DeckMemento_old = CardMemento[]
 
 /**
  * Converts a memento version of a card into an actual Card type
  */
-export function toCard(data: CardMemento): Card {
+export function toCard(data: CardMemento): Card_old {
     switch (data.type) {
         case 'NUMBERED':
             return { type: 'NUMBERED', color: readColor(data), number: readNumber(data) }
@@ -27,12 +27,12 @@ export function toCard(data: CardMemento): Card {
 }
 
 
-function readColor(data: CardMemento): Color {
+function readColor(data: CardMemento): Color_old {
     const color = data.color
-    if(typeof color !== 'string' || !validColors.includes(color as Color)) {
+    if(typeof color !== 'string' || !validColors.includes(color as Color_old)) {
         throw new Error(`Invalid or missing color: ${color}`)
     }
-    return color as Color
+    return color as Color_old
 }
 
 

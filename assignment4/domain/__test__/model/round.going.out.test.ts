@@ -1,6 +1,6 @@
 import { describe, it, test, expect } from '@jest/globals'
-import { createRound} from './test_adapter'
-import type { Round } from '../../src/model/round'
+import { createRound} from '../utils/test_adapter'
+import type { Round_old } from '../../src/model/round_old'
 import { canPlay, 
          catchUnoFailure, 
          sayUno,
@@ -10,11 +10,11 @@ import { canPlay,
          hasEnded,
          winner,
          canPlayAny,
-         score} from '../../src/model/round'
+         score} from '../../src/model/round_old'
 import { deterministicShuffle, shuffleBuilder, successiveShufflers } from './shuffling'
 import * as _ from 'lodash'
-import { createInitialDeck } from '../../src/model/deck'
-import { standardShuffler } from './random_utils'
+import { createInitialDeck } from '../../src/model/deck_old'
+import { standardShuffler } from '../../src/utils/random_utils'
 
 describe('catching failure to say "UNO!"', () => {
   const builder = shuffleBuilder({players: 4, cardsPerPlayer: 2})
@@ -31,7 +31,7 @@ describe('catching failure to say "UNO!"', () => {
 
     describe("single UNO scenario", () => {
       const shuffler = builder.build()
-      const round: Round = _.flow([
+      const round: Round_old = _.flow([
         draw,
         _.partial(play, 2, undefined),
         draw,
@@ -113,7 +113,7 @@ describe('catching failure to say "UNO!"', () => {
       expect(checkUnoFailure({accuser: 2, accused: 0}, res)).toBeFalsy()
     })
     it("still succeeds if the player has said 'UNO!' before another players turn", () => {
-      const round: Round = _.flow([
+      const round: Round_old = _.flow([
         draw,
         _.partial(play, 2, undefined),
         draw,
@@ -130,7 +130,7 @@ describe('catching failure to say "UNO!"', () => {
     builder.hand(3).is({type: 'NUMBERED', color: 'BLUE', number: 4}, {type: 'REVERSE', color: 'RED'})
     const shuffler = builder.build()
     const cards = shuffler(createInitialDeck()).slice(0, 14)
-    const round: Round = _.flow([
+    const round: Round_old = _.flow([
       draw,
       _.partial(play, 2, undefined),
       draw,

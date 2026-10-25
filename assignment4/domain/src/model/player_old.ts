@@ -1,21 +1,21 @@
-import { PlayerHand, PlayerHandImpl } from "./playerHand";
+import { PlayerHand_old, PlayerHandImpl } from "./playerHand_old";
 
-export interface Player {
+export interface Player_old {
     readonly playerId: number
     readonly playerName: string
-    readonly hand: PlayerHand
+    readonly hand: PlayerHand_old
     hasSaidUno: boolean
     hasDrawnCardInTurn: boolean
 }
 
-export class PlayerImpl implements Player {
+export class PlayerImpl implements Player_old {
     private readonly _playerId: number
     private readonly _playerName: string
-    private readonly _hand: PlayerHand
+    private readonly _hand: PlayerHand_old
     private _hasSaidUno: boolean
     private _hasDrawnCardInTurn: boolean
 
-    constructor(playerId: number, playerName: string, playerHand: PlayerHand = new PlayerHandImpl([]), hasSaidUno: boolean = false, hasDrawnCardInTurn: boolean = false) {
+    constructor(playerId: number, playerName: string, playerHand: PlayerHand_old = new PlayerHandImpl([]), hasSaidUno: boolean = false, hasDrawnCardInTurn: boolean = false) {
         this._playerId = playerId
         this._playerName = playerName
         this._hand = playerHand
@@ -31,7 +31,7 @@ export class PlayerImpl implements Player {
         return this._playerName
     }
 
-    get hand(): PlayerHand {
+    get hand(): PlayerHand_old {
         return this._hand
     }
 

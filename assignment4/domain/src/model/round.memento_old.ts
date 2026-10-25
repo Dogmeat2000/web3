@@ -1,15 +1,15 @@
-import { Deck } from "./deck";
-import { CardMemento, toCard } from "./deck.memento";
-import { Round } from "./round";
-import { RoundImpl } from "./round.impl";
-import { PlayerHand, PlayerHandImpl } from "./playerHand";
-import { Player } from "./player";
-import { DeckImpl } from "./deck.impl";
+import { Deck_old } from "./deck_old";
+import { CardMemento, toCard } from "./deck.memento_old";
+import { Round_old } from "./round_old";
+import { RoundImpl_old } from "./round.impl_old";
+import { PlayerHand_old, PlayerHandImpl } from "./playerHand_old";
+import { Player_old } from "./player_old";
+import { DeckImpl_old } from "./deck.impl_old";
 import { Shuffler } from "../utils/random_utils";
-import { Card, validColors } from "./card";
-import { Color } from "./color";
+import { Card_old, validColors } from "./card_old";
+import { Color_old } from "./color_old";
 
-export type RoundMemento = {
+export type RoundMemento_old = {
     players: string[],
     hands: CardMemento[][],
     drawPile: CardMemento[],
@@ -35,17 +35,17 @@ export type RoundMemento = {
  * @param data The serialized data to convert into a proper Round type.
  * @param shuffler The shuffler to use for shuffling decks in this Round.
  */
-export function toRound(data: RoundMemento, shuffler: Shuffler<Card>): Round {
+export function toRound(data: RoundMemento_old, shuffler: Shuffler<Card_old>): Round_old {
     const playerNames: string[] = readPlayerNames(data)
-    const playerHands: PlayerHand[] = readPlayerHands(data)
-    const drawPile: Deck = readDrawPile(data)
-    const discardPile: Deck = readDiscardPile(data)
-    const currentColor: Color = readCurrentColor(data)
+    const playerHands: PlayerHand_old[] = readPlayerHands(data)
+    const drawPile: Deck_old = readDrawPile(data)
+    const discardPile: Deck_old = readDiscardPile(data)
+    const currentColor: Color_old = readCurrentColor(data)
     const currentDirection: string = readCurrentDirection(data)
     const dealer: number = readDealer(data, playerNames)
     const playerInTurn: number | undefined = readCurrentPlayerInTurn(data, playerNames, playerHands)
 
-    const convertedRound: Round = new RoundImpl(playerNames, dealer, shuffler, 0, false)
+    const convertedRound: Round_old = new RoundImpl_old(playerNames, dealer, shuffler, 0, false)
     convertedRound.modifyRoundState(playerHands, drawPile, discardPile, currentColor, currentDirection, playerInTurn)
     readPlayerFlags(data, convertedRound)
     return convertedRound
@@ -54,9 +54,9 @@ export function toRound(data: RoundMemento, shuffler: Shuffler<Card>): Round {
 /**
  * Restores which players have said UNO, and which have drawn cards in their turn.
  */
-function readPlayerFlags(data: RoundMemento, round: Round): void {
+function readPlayerFlags(data: RoundMemento_old, round: Round_old): void {
     for (let i: number = 0; i < data.players.length; i++) {
-        const player: Player | undefined = round.playerObj(i)
+        const player: Player_old | undefined = round.playerObj(i)
 
         if(player !== undefined) {
             player.hasSaidUno = data.saidUno?.[i] ?? false
@@ -65,7 +65,7 @@ function readPlayerFlags(data: RoundMemento, round: Round): void {
     }
 }
 
-function readPlayerNames(data: RoundMemento): string[] {
+function readPlayerNames(data: RoundMemento_old): string[] {
     const names: string[] = []
 
     for (let i = 0; i < data.players.length; i++) {
@@ -75,11 +75,11 @@ function readPlayerNames(data: RoundMemento): string[] {
     return names
 }
 
-function readPlayerHands(data: RoundMemento): PlayerHand[] {
-    const hands: PlayerHand[]  = []
+function readPlayerHands(data: RoundMemento_old): PlayerHand_old[] {
+    const hands: PlayerHand_old[]  = []
 
     for (let i = 0; i < data.players.length; i++) {
-        const cards: Card[] = []
+        const cards: Card_old[] = []
 
         for (const card of data.hands[i]) {
             cards.push(toCard(card))
@@ -91,39 +91,39 @@ function readPlayerHands(data: RoundMemento): PlayerHand[] {
     return hands
 }
 
-function readDrawPile(data: RoundMemento): Deck {
+function readDrawPile(data: RoundMemento_old): Deck_old {
     const readDrawPile: CardMemento[] = data.drawPile
-    const convertedCards: Card[] = []
+    const convertedCards: Card_old[] = []
 
     for (const card of readDrawPile) {
         convertedCards.push(toCard(card))
     }
 
-    return new DeckImpl(convertedCards)
+    return new DeckImpl_old(convertedCards)
 }
 
-function readDiscardPile(data: RoundMemento): Deck {
+function readDiscardPile(data: RoundMemento_old): Deck_old {
     const readDiscardPile: CardMemento[] = data.discardPile
-    const convertedCards: Card[] = []
+    const convertedCards: Card_old[] = []
 
     for (const card of readDiscardPile) {
         convertedCards.push(toCard(card))
     }
 
     // Reversal here to satisfy memento to type conversion specifications as defined in the related unit tests...
-    return new DeckImpl(convertedCards.reverse())
+    return new DeckImpl_old(convertedCards.reverse())
 }
 
-function readCurrentColor(data: RoundMemento): Color {
+function readCurrentColor(data: RoundMemento_old): Color_old {
     const currentColor: string = data.currentColor
 
-    if(!validColors.includes(currentColor as Color))
+    if(!validColors.includes(currentColor as Color_old))
         throw new Error(`Invalid color: ${currentColor}`)
 
-    return currentColor as Color
+    return currentColor as Color_old
 }
 
-function readCurrentDirection(data: RoundMemento): 'clockwise' | 'counterclockwise' {
+function readCurrentDirection(data: RoundMemento_old): 'clockwise' | 'counterclockwise' {
     const direction = data.currentDirection
 
     if(direction !== 'clockwise' && direction !== 'counterclockwise')
@@ -135,7 +135,7 @@ function readCurrentDirection(data: RoundMemento): 'clockwise' | 'counterclockwi
 /**
  * Must pass a playerNames array, as this is used to verify that the extracted dealer id is valid.
  */
-function readDealer(data: RoundMemento, playerNames: string[]): number {
+function readDealer(data: RoundMemento_old, playerNames: string[]): number {
     const dealerIndex: number = data.dealer
 
     if(dealerIndex >= playerNames.length || dealerIndex < 0)
@@ -147,7 +147,7 @@ function readDealer(data: RoundMemento, playerNames: string[]): number {
 /**
  * Must pass a players array, as this is used to verify that the extracted current player in turn id is valid.
  */
-function readCurrentPlayerInTurn(data: RoundMemento, playerNames: string[], playerHands: PlayerHand[]): number | undefined {
+function readCurrentPlayerInTurn(data: RoundMemento_old, playerNames: string[], playerHands: PlayerHand_old[]): number | undefined {
     const playerIndex: number = data.playerInTurn!
     const isRoundFinished: boolean = playerHands.some(hand => hand.cards.length === 0)
 

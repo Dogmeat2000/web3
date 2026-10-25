@@ -1,23 +1,23 @@
-import { Player, PlayerImpl } from "./player";
-import { Deck, hasColor } from "./deck";
+import { Player_old, PlayerImpl } from "./player_old";
+import { Deck_old, hasColor } from "./deck_old";
 import { Shuffler } from "../utils/random_utils";
-import { DeckImpl } from "./deck.impl";
-import { Round } from "./round";
-import { PlayerHand } from "./playerHand";
-import { RoundMemento } from "./round.memento";
-import { Card } from "./card";
-import { Color } from "./color";
+import { DeckImpl_old } from "./deck.impl_old";
+import { Round_old } from "./round_old";
+import { PlayerHand_old } from "./playerHand_old";
+import { RoundMemento_old } from "./round.memento_old";
+import { Card_old } from "./card_old";
+import { Color_old } from "./color_old";
 
-export class RoundImpl implements Round {
-    private readonly _players: Player[] = []
-    private readonly _dealer: Player
+export class RoundImpl_old implements Round_old {
+    private readonly _players: Player_old[] = []
+    private readonly _dealer: Player_old
 
-    private _drawPileDeck: Deck
-    private _discardPileDeck: Deck
-    private readonly _shuffler: Shuffler<Card>
+    private _drawPileDeck: Deck_old
+    private _discardPileDeck: Deck_old
+    private readonly _shuffler: Shuffler<Card_old>
 
-    private _activeCardColor: Color
-    private _activePlayer: Player
+    private _activeCardColor: Color_old
+    private _activePlayer: Player_old
 
     private _playPassDirection: 'counterclockwise' | 'clockwise' = 'clockwise'
     private _noOfCardsPlayerMustDraw: number = 1        // Determines how many cards a player must draw, if they can not legally play any of their cards on their turn
@@ -33,7 +33,7 @@ export class RoundImpl implements Round {
      * @param cardsPerPlayer How many cards each player should start the game with.
      * @param initializeFreshRound Set this to TRUE, to automatically set up the new round ready to play from turn 1. Set FALSE to skip setup, in which case manual round setup must be performed.
      */
-    constructor(playerNames: string[], dealer: number, shuffler: Shuffler<Card>, cardsPerPlayer: number, initializeFreshRound: boolean = true) {
+    constructor(playerNames: string[], dealer: number, shuffler: Shuffler<Card_old>, cardsPerPlayer: number, initializeFreshRound: boolean = true) {
         // Game Rule: Rounds in UNO must be played by between 2 and 10 players.
         if(playerNames.length > 10 || playerNames.length < 2)
             throw new Error(`A round must be played by between 2 to 10 players. Round was attempted to be played with ${playerNames.length} players`)
@@ -45,21 +45,21 @@ export class RoundImpl implements Round {
 
         if (!initializeFreshRound) {
             // Round state must be supplied externally, so here we just instantiate internal state parameters.
-            this._drawPileDeck = new DeckImpl([])
-            this._discardPileDeck = new DeckImpl([])
+            this._drawPileDeck = new DeckImpl_old([])
+            this._discardPileDeck = new DeckImpl_old([])
             this._activeCardColor = 'BLUE'
             return
         }
 
         // Game Rule: Shuffle the deck before dealing:
-        const newDeck: Deck = new DeckImpl()
+        const newDeck: Deck_old = new DeckImpl_old()
         newDeck.shuffle(shuffler)
 
         // Game Rule: Give the players their cards. Leftover cards go to the Draw Pile:
         this._drawPileDeck = this.initializePlayerHands(newDeck, cardsPerPlayer)
 
         // Game Rule: If the top card of the Discard Pile is a Wild or Wild Draw 4, return it to the Draw Pile and pick another card.
-        let card: Card | undefined = this._drawPileDeck.deal()
+        let card: Card_old | undefined = this._drawPileDeck.deal()
         let attempts: number = 0
         while (card !== undefined && (card.type === 'WILD' || card.type === 'WILD DRAW')){
             if(++attempts > 500)
@@ -72,7 +72,7 @@ export class RoundImpl implements Round {
         }
 
         if (card !== undefined && 'color' in card) {
-            this._discardPileDeck = new DeckImpl([card])
+            this._discardPileDeck = new DeckImpl_old([card])
             this._activeCardColor = card.color
         } else {
             throw new Error("Unable to deal card from draw pile. Round can not begin")
@@ -96,7 +96,7 @@ export class RoundImpl implements Round {
         this.nextPlayer()
     }
 
-    playerObj(playerId: number): Player | undefined {
+    playerObj(playerId: number): Player_old | undefined {
         if(playerId < 0 || playerId > this.playerCount)
             return undefined
 
@@ -111,7 +111,7 @@ export class RoundImpl implements Round {
         if(playerId < 0 || playerId >= this.playerCount)
             throw new Error("Provided PlayerId is outside of index bounds.")
 
-        const player : Player | undefined  = this._players.find(p => p.playerId === playerId)
+        const player : Player_old | undefined  = this._players.find(p => p.playerId === playerId)
 
         if (player !== undefined)
             return player.playerName
@@ -119,25 +119,25 @@ export class RoundImpl implements Round {
         return undefined
     }
 
-    playerHand(playerId: number): Card[] {
-        const player : Player | undefined  = this._players.find(p => p.playerId === playerId)
+    playerHand(playerId: number): Card_old[] {
+        const player : Player_old | undefined  = this._players.find(p => p.playerId === playerId)
         return player ? player.hand.cards : []
     }
 
-    discardPile(): Deck {
+    discardPile(): Deck_old {
         return this._discardPileDeck
     }
 
-    drawPile(): Deck {
+    drawPile(): Deck_old {
         return this._drawPileDeck
     }
 
-    play(cardIndex: number, namedColor?: Color): Card {
+    play(cardIndex: number, namedColor?: Color_old): Card_old {
         // Game Rule: Cannot play if round has already ended
         if(this.hasEnded())
             throw new Error(`Cannot play. Round has already ended. Winner is: ${this._players.at(this.winner()!)?.playerName}`)
 
-        const playedCard: Card = this._activePlayer.hand.cards[cardIndex]
+        const playedCard: Card_old = this._activePlayer.hand.cards[cardIndex]
 
         if('color' in playedCard) {
             // Game Rule: Player cannot name a color, when playing a colored card
@@ -183,7 +183,7 @@ export class RoundImpl implements Round {
         if(this.hasEnded())
             return false
 
-        const card: Card = this._activePlayer.hand.cards[cardIndex]
+        const card: Card_old = this._activePlayer.hand.cards[cardIndex]
         return this.playCard(card, false)
     }
 
@@ -214,7 +214,7 @@ export class RoundImpl implements Round {
 
     private drawCards(): void {
         let cardsDrawn: number = 0;
-        let lastDrawnCard: Card | undefined
+        let lastDrawnCard: Card_old | undefined
         while(this._noOfCardsPlayerMustDraw > 0) {
             // Game Rule: If draw pile is empty, reshuffle discard pile, leaving the top card on the table, putting the rest into the draw pile.
             if(this._drawPileDeck.size === 0)
@@ -285,12 +285,12 @@ export class RoundImpl implements Round {
         if(this._activePlayer.hasDrawnCardInTurn)
             return false
 
-        const accusedPlayer: Player = this._players[players.accused]
+        const accusedPlayer: Player_old = this._players[players.accused]
 
         // Game Rule: If a player fails to announce 'UNO' while only having 1 card on hand (in their turn), they can be caught by another player:
         if(!accusedPlayer.hasSaidUno && accusedPlayer.hand.cards.length === 1){
             // Game Rule: Accused player must draw 4 cards as punishment.
-            const playerInTurn: Player = this._activePlayer
+            const playerInTurn: Player_old = this._activePlayer
 
             this._activePlayer = accusedPlayer
             this._noOfCardsPlayerMustDraw = 4
@@ -352,7 +352,7 @@ export class RoundImpl implements Round {
      * @returns The playerId/index of the winning player in this Round.
      */
     winner(): number | undefined {
-        const winner: Player[] = []
+        const winner: Player_old[] = []
 
         for (const player of this._players) {
             if(player.hand.cards.length === 0) {
@@ -369,8 +369,8 @@ export class RoundImpl implements Round {
         return winner[0].playerId;
     }
 
-    toMemento(): RoundMemento {
-        const memento: RoundMemento = {
+    toMemento(): RoundMemento_old {
+        const memento: RoundMemento_old = {
             players: this._players.map(p => p.playerName),
             hands: this._players.map(p => p.hand.cards.map(c => ({ ...c }))),
             drawPile: this._drawPileDeck.toMemento(),
@@ -402,14 +402,14 @@ export class RoundImpl implements Round {
         return this._dealer.playerId;
     }
 
-    modifyRoundState(playerHands?: PlayerHand[], drawPile?: Deck, discardPile?: Deck, currentColor?: Color, currentDirection?: 'clockwise' | 'counterclockwise', playerInTurn?: number): void {
+    modifyRoundState(playerHands?: PlayerHand_old[], drawPile?: Deck_old, discardPile?: Deck_old, currentColor?: Color_old, currentDirection?: 'clockwise' | 'counterclockwise', playerInTurn?: number): void {
         // Backup current round state before changes.
-        const oldPlayers: Player[] = this._players
-        const oldDrawPileDeck: Deck = this._drawPileDeck
-        const oldDiscardPileDeck: Deck = this._discardPileDeck
-        const oldActiveColor: Color = this._activeCardColor
+        const oldPlayers: Player_old[] = this._players
+        const oldDrawPileDeck: Deck_old = this._drawPileDeck
+        const oldDiscardPileDeck: Deck_old = this._discardPileDeck
+        const oldActiveColor: Color_old = this._activeCardColor
         const oldPlayPassDirection: 'clockwise' | 'counterclockwise' = this._playPassDirection
-        const oldActivePlayer: Player = this._activePlayer
+        const oldActivePlayer: Player_old = this._activePlayer
 
         if(playerHands !== undefined) {
             // Game Rule: There can not be multiple empty hands. A Round can only have 1 winner, and winner is determined by the player with an empty hand.
@@ -422,7 +422,7 @@ export class RoundImpl implements Round {
                 const playerName: string = this._players[i].playerName;
                 const playerId: number = this._players[i].playerId;
                 const hasSaidUno: boolean = this._players[i].hasSaidUno;
-                const playerHand: PlayerHand = playerHands[i];
+                const playerHand: PlayerHand_old = playerHands[i];
                 this._players[i] = new PlayerImpl(playerId, playerName, playerHand, hasSaidUno)
             }
         }
@@ -442,7 +442,7 @@ export class RoundImpl implements Round {
 
         if(currentColor !== undefined) {
             // Game Rule: Color must match top card of discard pile. Unless it's a WILD or WILD DRAW, which has no color.
-            const topCard: Card = this._discardPileDeck.top()!
+            const topCard: Card_old = this._discardPileDeck.top()!
             if('color' in topCard && !hasColor(topCard, currentColor)){
                 this.rollbackModifications(oldPlayers, oldDrawPileDeck, oldDiscardPileDeck, oldActiveColor)
                 throw new Error("The active color must match the top discard pile card's color - except if top card is WILD or WILD DRAW")
@@ -464,7 +464,7 @@ export class RoundImpl implements Round {
         }
     }
 
-    private rollbackModifications(players?: Player[], drawPile?: Deck, discardPile?: Deck, currentColor?: Color, currentDirection?: 'clockwise' | 'counterclockwise', playerInTurn?: number): void {
+    private rollbackModifications(players?: Player_old[], drawPile?: Deck_old, discardPile?: Deck_old, currentColor?: Color_old, currentDirection?: 'clockwise' | 'counterclockwise', playerInTurn?: number): void {
         if(players !== undefined) {
             for (let i = 0; i < this.playerCount; i++) {
                 this._players[i] = new PlayerImpl(
@@ -506,8 +506,8 @@ export class RoundImpl implements Round {
     /**
      * Initializes the player hands and returns the remaining deck
      */
-    private initializePlayerHands(freshCardDeck: Deck, cardsPerPlayer: number): Deck {
-        let dealerDeck: Deck = freshCardDeck
+    private initializePlayerHands(freshCardDeck: Deck_old, cardsPerPlayer: number): Deck_old {
+        let dealerDeck: Deck_old = freshCardDeck
         for (const player of this._players) {
             dealerDeck = this.initializeHand(dealerDeck, player, cardsPerPlayer)
         }
@@ -517,9 +517,9 @@ export class RoundImpl implements Round {
     /**
      * Initializes a single player's hand, returning the remaining Deck.
      */
-    private initializeHand(dealerDeck: Deck, player: Player, cardsPerPlayer: number): Deck {
+    private initializeHand(dealerDeck: Deck_old, player: Player_old, cardsPerPlayer: number): Deck_old {
         for (let i: number = 0; i < cardsPerPlayer; i++) {
-            const card: Card | undefined = dealerDeck.deal()
+            const card: Card_old | undefined = dealerDeck.deal()
 
             if(card !== undefined) {
                 player.hand.addCard(card)
@@ -569,9 +569,9 @@ export class RoundImpl implements Round {
      * Moves all cards, except the top-most, from the discard pile into the draw pile and shuffles the draw pile.
      */
     private redistributeDiscardPile(): void {
-        const topCard: Card = this.discardPile().top()!
+        const topCard: Card_old = this.discardPile().top()!
         this._drawPileDeck = this._discardPileDeck?.filter(card => card !== topCard)
-        this._discardPileDeck = new DeckImpl([topCard])
+        this._discardPileDeck = new DeckImpl_old([topCard])
         this._drawPileDeck.shuffle(this._shuffler)
     }
 
@@ -582,7 +582,7 @@ export class RoundImpl implements Round {
      * @param namedColor The color named by the player. Signifies which color should be in effect when played with various special cards.
      * @returns True if the card either can be played, otherwise false.
      */
-    private playCard(card: Card, applySpecialEffects: boolean, namedColor?: Color): boolean {
+    private playCard(card: Card_old, applySpecialEffects: boolean, namedColor?: Color_old): boolean {
         let sameColor: boolean = false
         let sameType: boolean = false
         let sameNumber: boolean = false
@@ -607,7 +607,7 @@ export class RoundImpl implements Round {
             // Game Rule: NUMBERED cards are legal to play on top of another card with the same color, or a card with the same number
             case 'NUMBERED':
                 sameColor = card.color === this._activeCardColor
-                const topCard: Card = this._discardPileDeck.top()!
+                const topCard: Card_old = this._discardPileDeck.top()!
 
                 if(topCard.type === 'NUMBERED')
                     sameNumber = topCard.number === card.number

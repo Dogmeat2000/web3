@@ -1,14 +1,14 @@
-import { Deck } from "./deck";
-import { PlayerHand } from "./playerHand";
-import { RoundMemento } from "./round.memento";
-import { Color } from "./color";
-import { Card } from "./card";
-import {Player} from "./player";
+import { Deck_old } from "./deck_old";
+import { PlayerHand_old } from "./playerHand_old";
+import { RoundMemento_old } from "./round.memento_old";
+import { Color_old } from "./color_old";
+import { Card_old } from "./card_old";
+import {Player_old} from "./player_old";
 
 /**
  * A Round encapsulates all the logic needed to complete a single round of the Uno game. Each round concludes with a winner (the first player to say uno and put down their last remaining card), as well as a score attributed to the winning player.
  */
-export interface Round {
+export interface Round_old {
     readonly playerCount: number
     readonly dealer: number
 
@@ -21,7 +21,7 @@ export interface Round {
     /**
      * Returns the player object containing information about this player.
      */
-    playerObj(playerId: number): Player | undefined
+    playerObj(playerId: number): Player_old | undefined
 
     /**
      * Plays the card with the provided index position on the current players hand. If the player names a color, this is also applied - which is primarily used for the WILD cards.
@@ -29,23 +29,23 @@ export interface Round {
      * @param namedColor Optional: The color the player is naming. Is required for WILD cards. Results in an error if provided with non-wild cards.
      * @returns The card that was played.
      */
-    play(cardIndex: number, namedColor?: Color): Card
+    play(cardIndex: number, namedColor?: Color_old): Card_old
 
     /**
      * @param playerId The id of a player.
      * @returns The cards that are currently on the specified players' hand.
      */
-    playerHand(playerId: number): Card[]
+    playerHand(playerId: number): Card_old[]
 
     /**
      * @return The Discard Pile as a Deck.
      */
-    discardPile(): Deck
+    discardPile(): Deck_old
 
     /**
      * @return The Draw Pile as a Deck.
      */
-    drawPile(): Deck
+    drawPile(): Deck_old
 
     /**
      * @return The playerId of the currently active player.
@@ -111,7 +111,7 @@ export interface Round {
      * Converts the current Rounds state into a memento object.
      * @returns The converted memento object
      */
-    toMemento(): RoundMemento
+    toMemento(): RoundMemento_old
 
     /**
      * Modifies the state of the Round, allowing for customizing various Round data mid-round. WARNING: Modifying these internal stats might put the Round in an inconsistent state (or be used for cheating!), so use with caution!
@@ -122,5 +122,5 @@ export interface Round {
      * @param currentDirection Changes the currently active direction of play to the one specified (clockwise or counterclockwise)
      * @param playerInTurn Marks the player specified by this index/playerId as the one whose turn it currently is, in this round.
      */
-    modifyRoundState(playerHands?: PlayerHand[], drawPile?: Deck, discardPile?: Deck, currentColor?: Color, currentDirection?: string, playerInTurn?: number): void
+    modifyRoundState(playerHands?: PlayerHand_old[], drawPile?: Deck_old, discardPile?: Deck_old, currentColor?: Color_old, currentDirection?: string, playerInTurn?: number): void
 }

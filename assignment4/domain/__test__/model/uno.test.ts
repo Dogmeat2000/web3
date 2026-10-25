@@ -1,8 +1,8 @@
 import { describe, it, test, expect } from '@jest/globals'
-import { createGame } from './test_adapter'
-import { shuffleBuilder, successiveShufflers } from './shuffling'
+import { createGame } from '../utils/test_adapter'
+import { shuffleBuilder, successiveShufflers } from '../utils/shuffling'
 import { Game, play } from '../../src/model/uno'
-import * as Round from '../../src/model/round'
+import * as Round from '../../src/model/round_old'
 import * as _ from 'lodash'
 
 describe("Game set up", () => {

@@ -1,4 +1,4 @@
-import { Color } from "./color";
+import { Color_old } from "./color_old";
 import { GameMemento } from "./uno.memento";
 
 /** The name and password of a hosted game. Every request about that game carries them. */
@@ -26,7 +26,7 @@ export type NamedColor = {
     /**
      * Color chosen.
      */
-    color: Color
+    color: Color_old
 }
 
 /** The round that ended most recently. */

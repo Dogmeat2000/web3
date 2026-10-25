@@ -1,13 +1,13 @@
-import { RoundMemento, toRound } from "./round.memento";
-import { Round } from "./round";
+import { RoundMemento_old, toRound } from "./round.memento_old";
+import { Round_old } from "./round_old";
 import { Game } from "./uno";
 import { Randomizer, Shuffler } from "../utils/random_utils";
 import { GameImpl } from "./uno.impl";
-import { Card } from "./card";
+import { Card_old } from "./card_old";
 
 export type GameMemento = {
     players: string[],
-    currentRound: RoundMemento | undefined,
+    currentRound: RoundMemento_old | undefined,
     targetScore: number,
     scores: number[],
     cardsPerPlayer: number
@@ -19,9 +19,9 @@ export type GameMemento = {
  * @param shuffler The shuffler to use for shuffling decks in this Game.
  * @param randomizer The randomizer used to select new dealers in each Round of the game.
  */
-export function toGame(data: GameMemento, shuffler: Shuffler<Card>, randomizer: Randomizer): Game {
+export function toGame(data: GameMemento, shuffler: Shuffler<Card_old>, randomizer: Randomizer): Game {
     const playerNames: Record<number, string> = readPlayerNames(data)
-    const currentRound: Round | undefined = data.currentRound ? toRound(data.currentRound, shuffler) : undefined
+    const currentRound: Round_old | undefined = data.currentRound ? toRound(data.currentRound, shuffler) : undefined
     const targetScore: number = data.targetScore
     const scores: Record<number, number> = readPlayerScores(data)
 

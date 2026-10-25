@@ -1,13 +1,13 @@
-import { Deck } from "./deck";
+import { Deck_old } from "./deck_old";
 import { Shuffler } from "../utils/random_utils";
-import { DeckMemento } from "./deck.memento";
-import { Card, validCardNumbers } from "./card";
-import { Color } from "./color";
+import { DeckMemento_old } from "./deck.memento_old";
+import { Card_old, validCardNumbers } from "./card_old";
+import { Color_old } from "./color_old";
 
-export class DeckImpl implements Deck {
-    private readonly _cards: Card[] = []
+export class DeckImpl_old implements Deck_old {
+    private readonly _cards: Card_old[] = []
 
-    constructor(cards : Card[] = this.initializeDeck()) {
+    constructor(cards : Card_old[] = this.initializeDeck()) {
         this._cards = [...cards]
     }
 
@@ -15,43 +15,43 @@ export class DeckImpl implements Deck {
         return this._cards.length
     }
 
-    deal(): Card | undefined {
+    deal(): Card_old | undefined {
         return this._cards.shift()
     }
 
-    shuffle(shuffler: Shuffler<Card>): void {
+    shuffle(shuffler: Shuffler<Card_old>): void {
         shuffler(this._cards)
     }
 
-    filter(pred: (card: Card) => boolean): Deck {
-        return new DeckImpl(this._cards.filter(pred))
+    filter(pred: (card: Card_old) => boolean): Deck_old {
+        return new DeckImpl_old(this._cards.filter(pred))
     }
 
-    top(): Card | undefined {
+    top(): Card_old | undefined {
         return this._cards.at(-1);
     }
 
-    push(card: Card): void {
+    push(card: Card_old): void {
         this._cards.push(card)
     }
 
-    toMemento(): DeckMemento {
+    toMemento(): DeckMemento_old {
         return this._cards.map(card => ({...card}))
     }
 
-    private initializeDeck(): Card[] {
+    private initializeDeck(): Card_old[] {
         // Initialize _cards:
-        const redCards: Card[] = this.buildColoredCardStack('RED')
-        const greenCards: Card[] = this.buildColoredCardStack('GREEN')
-        const blueCards: Card[] = this.buildColoredCardStack('BLUE')
-        const yellowCards: Card[] = this.buildColoredCardStack('YELLOW')
-        const wildCards: Card[] = this.buildWildCardStack()
+        const redCards: Card_old[] = this.buildColoredCardStack('RED')
+        const greenCards: Card_old[] = this.buildColoredCardStack('GREEN')
+        const blueCards: Card_old[] = this.buildColoredCardStack('BLUE')
+        const yellowCards: Card_old[] = this.buildColoredCardStack('YELLOW')
+        const wildCards: Card_old[] = this.buildWildCardStack()
 
         return [...redCards, ...greenCards, ...yellowCards, ...blueCards, ...wildCards]
     }
 
-    private buildColoredCardStack(color: Color): Card[] {
-        const cards: Card[] = []
+    private buildColoredCardStack(color: Color_old): Card_old[] {
+        const cards: Card_old[] = []
 
         // Create 19 numbered _cards of this color:
         for (const number of validCardNumbers) {
@@ -75,8 +75,8 @@ export class DeckImpl implements Deck {
         return cards
     }
 
-    private buildWildCardStack(): Card[] {
-        const cards: Card[] = []
+    private buildWildCardStack(): Card_old[] {
+        const cards: Card_old[] = []
 
         // Create 4 wild draw _cards:
         for (let i: number = 0; i < 4; i++) {

@@ -1,11 +1,11 @@
 import { Shuffler } from "../utils/random_utils";
-import { DeckMemento, toCard } from "./deck.memento";
-import { DeckImpl } from "./deck.impl";
-import {Card, TypedCard} from "./card";
-import {Color} from "./color";
+import { DeckMemento_old, toCard } from "./deck.memento_old";
+import { DeckImpl_old } from "./deck.impl_old";
+import {Card_old, TypedCard} from "./card_old";
+import {Color_old} from "./color_old";
 
 // Deck
-export interface Deck {
+export interface Deck_old {
     /**
      * @returns the number of cards present in this deck
      */
@@ -15,35 +15,35 @@ export interface Deck {
      * Deals the bottom most card (i.e. index 0) from this deck, removing this Card from the deck.
      * @returns a Card if deck has cards. Otherwise, returns undefined
      */
-    deal(): Card | undefined
+    deal(): Card_old | undefined
 
     /**
      * Shuffles the deck.
      * @argument shuffler The shuffler implementation to use for the shuffling operation.
      */
-    shuffle(shuffler: Shuffler<Card>): void
+    shuffle(shuffler: Shuffler<Card_old>): void
 
     /**
      * Filters based on the provided predicate and returns a new Deck containing only the filtered cards.
      * @returns The filtered Deck
      */
-    filter(pred: (card: Card) => boolean): Deck
+    filter(pred: (card: Card_old) => boolean): Deck_old
 
     /**
      * @returns The top-most Card in the Deck.
      */
-    top(): Card | undefined
+    top(): Card_old | undefined
 
     /**
      * Adds a Card to the end (top) of the Deck stack
      */
-    push(card: Card): void
+    push(card: Card_old): void
 
     /**
      * Converts this deck into a Memento type.
      * @returns The memento converted deck as a DeckMemento type.
      */
-    toMemento(): DeckMemento
+    toMemento(): DeckMemento_old
 }
 
 /**
@@ -52,7 +52,7 @@ export interface Deck {
  * @param number The number to check for on this card
  * @returns True the card has the provided number. Otherwise, False.
  */
-export function hasNumber(card: Card, number: TypedCard<'NUMBERED'>['number']): boolean {
+export function hasNumber(card: Card_old, number: TypedCard<'NUMBERED'>['number']): boolean {
     if(card.type  === 'NUMBERED')
         return card.number === number;
 
@@ -65,7 +65,7 @@ export function hasNumber(card: Card, number: TypedCard<'NUMBERED'>['number']): 
  * @param color The color to check for on this card
  * @returns True the card has the provided number. Otherwise, False.
  */
-export function hasColor(card: Card, color: Color): boolean {
+export function hasColor(card: Card_old, color: Color_old): boolean {
     if(card.type  === 'NUMBERED' || card.type === 'DRAW' || card.type === 'REVERSE' || card.type === 'SKIP')
         return card.color === color;
 
@@ -77,6 +77,6 @@ export function hasColor(card: Card, color: Color): boolean {
  * @param memento A memento containing the serialized deck information.
  * @returns The
  * */
-export function fromMemento(memento: DeckMemento): Deck {
-    return new DeckImpl(memento.map(toCard))
+export function fromMemento(memento: DeckMemento_old): Deck_old {
+    return new DeckImpl_old(memento.map(toCard))
 }

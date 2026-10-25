@@ -1,0 +1,1 @@
+export type Color_old = 'BLUE' | 'RED' | 'GREEN' | 'YELLOW'

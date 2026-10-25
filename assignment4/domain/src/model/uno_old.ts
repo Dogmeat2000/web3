@@ -1,6 +1,6 @@
-import { Round } from "./round";
+import { Round_old } from "./round_old";
 import { GameMemento } from "./uno.memento";
-import {Player} from "./player";
+import {Player_old} from "./player_old";
 
 export interface Game {
     /**
@@ -34,7 +34,7 @@ export interface Game {
     /**
      * @returns The current round in play. Undefined if there is no current round.
      */
-    currentRound(): Round | undefined
+    currentRound(): Round_old | undefined
 
 
     /**
@@ -53,5 +53,5 @@ export interface Game {
     modifyGameState(players: Record<number, string>,
                     scores: Record<number, number>,
                     targetScore: number,
-                    currentRound: Round | undefined): void
+                    currentRound: Round_old | undefined): void
 }

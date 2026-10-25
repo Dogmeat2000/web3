@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals'
-import { createInitialDeck } from './test_adapter'
+import { createInitialDeck } from '../utils/test_adapter'
 import * as _ from 'lodash'
 
 describe("Initial deck", () => {

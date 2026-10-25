@@ -1,9 +1,9 @@
 import { Shuffler, standardShuffler } from './random_utils'
-import * as deck from '../../src/model/deck'
-import * as round from '../../src/model/round'
+import * as deck from '../../src/model/deck_old'
+import * as round from '../../src/model/round_old'
 import * as uno from '../../src/model/uno'
 
-export function createInitialDeck(): deck.Deck {
+export function createInitialDeck(): deck.Deck_old {
   return deck.createInitialDeck()
 }
 
@@ -19,7 +19,7 @@ export function createRound({
     dealer, 
     shuffler = standardShuffler,
     cardsPerPlayer = 7
-  }: RoundProps): round.Round {
+  }: RoundProps): round.Round_old {
   return round.createRound(players, dealer, shuffler, cardsPerPlayer)
 }
 

@@ -1,24 +1,24 @@
 import { Game } from "./uno";
-import { Round } from "./round";
+import { Round_old } from "./round_old";
 import { Randomizer, Shuffler, standardRandomizer, standardShuffler } from "../utils/random_utils";
-import { RoundImpl } from "./round.impl";
+import { RoundImpl_old } from "./round.impl_old";
 import { GameMemento } from "./uno.memento";
-import { Card } from "./card";
-import {Player} from "./player";
+import { Card_old } from "./card_old";
+import {Player_old} from "./player_old";
 
 export class GameImpl implements Game {
     playerCount: number;
     targetScore: number;
 
-    private _currentRound: Round | undefined
+    private _currentRound: Round_old | undefined
     private _players: Record<number, string> = {}
     private _scores: Record<number, number> = {}
     private readonly _randomizer: Randomizer
-    private readonly _shuffler: Shuffler<Card>
+    private readonly _shuffler: Shuffler<Card_old>
     private readonly _cardsPerPlayer: number
 
 
-    constructor(players: string[] = ['A', 'B'], targetScore: number = 500, randomizer: Randomizer = standardRandomizer, shuffler: Shuffler<Card> = standardShuffler, cardsPerPlayer: number = 7){
+    constructor(players: string[] = ['A', 'B'], targetScore: number = 500, randomizer: Randomizer = standardRandomizer, shuffler: Shuffler<Card_old> = standardShuffler, cardsPerPlayer: number = 7){
         // Game Rule: Players must be between 2 and 10:
         if(players.length < 2 || players.length > 10)
             throw new Error("Invalid number of players. Must be between 2 and 10 players")
@@ -45,7 +45,7 @@ export class GameImpl implements Game {
         this._currentRound = this.createNewRound()
     }
 
-    currentRound(): Round | undefined {
+    currentRound(): Round_old | undefined {
         // Game Logic: There is no current round if game has a winner.
         if(this.winner() !== undefined)
             return undefined
@@ -95,7 +95,7 @@ export class GameImpl implements Game {
         return winner;
     }
 
-    modifyGameState(players: Record<number, string>, scores: Record<number, number>, targetScore: number, currentRound: Round | undefined): void {
+    modifyGameState(players: Record<number, string>, scores: Record<number, number>, targetScore: number, currentRound: Round_old | undefined): void {
         const oldPlayers: Record<number, string> = players
         const oldScores: Record<number, number> = scores
         const oldTargetScore: number = targetScore
@@ -131,15 +131,15 @@ export class GameImpl implements Game {
         }
     }
 
-    private createNewRound(): Round {
-        const round: Round = new RoundImpl(Object.values(this._players), this._randomizer(this.playerCount), this._shuffler, this._cardsPerPlayer, true)
+    private createNewRound(): Round_old {
+        const round: Round_old = new RoundImpl_old(Object.values(this._players), this._randomizer(this.playerCount), this._shuffler, this._cardsPerPlayer, true)
 
         round.onEnd((event) => this.handleRoundEnd(round, event))
 
         return round
     }
 
-    private handleRoundEnd(round: Round, event: { winner: number }): void {
+    private handleRoundEnd(round: Round_old, event: { winner: number }): void {
         this._scores[event.winner] += round.score() ?? 0
 
         // Game Logic: Only start another round, if no winner for the game now exists
@@ -150,7 +150,7 @@ export class GameImpl implements Game {
         }
     }
 
-    private rollbackModifications(players?: Record<number, string>, scores?: Record<number, number>, targetScore?: number, currentRound?: Round | undefined): void {
+    private rollbackModifications(players?: Record<number, string>, scores?: Record<number, number>, targetScore?: number, currentRound?: Round_old | undefined): void {
         if(players !== undefined)
             this._players = players
 
