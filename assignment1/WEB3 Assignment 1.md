@@ -28,11 +28,11 @@ The task of assignment 1 is to implement the standard rules of UNO as described 
 
 The solution must be as object-oriented as possible.
 
-1. Define a type, `Card_old`, representing UNO cards, including special cards but not blank cards. Define the type as precisely as you can (allowing all UNO cards, not allowing anything that isn’t a UNO cards).
+1. Define a type, `Card`, representing UNO cards, including special cards but not blank cards. Define the type as precisely as you can (allowing all UNO cards, not allowing anything that isn’t a UNO cards).
 2. Define types for numbered cards, all coloured cards, and wild cards.
 3. Define a type, `Type`, denoting the different kinds of UNO cards.
 4. Define a utility type, `TypedCard<Type>`, representing UNO cards of the given type.
-5. Define an interface or type, `Deck_old`, representing a full deck of UNO cards. You might also want to use this to represent any pile of cards. Create an implementation of `Deck_old`.
+5. Define an interface or type, `Deck`, representing a full deck of UNO cards. You might also want to use this to represent any pile of cards. Create an implementation of `Deck`.
 6. Define an interface or type to represent a player hand. Create an implementation of a player hand.
 7. Define an interface or type to represent playing a round (or hand as it’s known in the rule set). Create an implementation of playing a round according to the rules of UNO except the rules surrounding saying “UNO” (also known as rules for “going out”).
 
