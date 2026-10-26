@@ -1,9 +1,10 @@
-import { Shuffler, standardShuffler } from './random_utils'
-import * as deck from '../../src/model/deck_old'
+import { Shuffler, standardShuffler } from '../../src/utils/random_utils'
+import * as deck from '../../src/model/deck'
 import * as round from '../../src/model/round_old'
 import * as uno from '../../src/model/uno'
+import { Card } from "../../src/model/deck";
 
-export function createInitialDeck(): deck.Deck_old {
+export function createInitialDeck(): Card[] {
   return deck.createInitialDeck()
 }
 
