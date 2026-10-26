@@ -1,5 +1,5 @@
-import { Card } from "../../src/model/deck_old"
-import { Shuffler, standardShuffler } from "./random_utils"
+import { Card } from "../../src/model/deck"
+import { Shuffler, standardShuffler } from "../../src/utils/random_utils"
 import { CardPredicate, CardSpec, is } from "./predicates"
 import * as _ from 'lodash'
 

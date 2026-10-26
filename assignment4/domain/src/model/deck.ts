@@ -1,4 +1,3 @@
-import {DeckMemento, toCard} from "./deck.memento";
 import {Shuffler} from "../utils/random_utils";
 
 export const VALID_CARD_NUMBERS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const
@@ -127,23 +126,6 @@ export function topCard(cards: Card[]): Card | undefined {
  */
 export function pushCard(cards: Card[], newCard: Card): Card[] {
     return [...cards, newCard]
-}
-
-/**
- * Converts these cards (deck) into a Memento type.
- * @returns The memento converted cards (deck) as a DeckMemento type.
- */
-export function toMemento(cards: Card[]): DeckMemento {
-    return cards.map(card => ({...card}))
-}
-
-/**
- * Creates a card collection (Deck) from the specified Deck memento.
- * @param memento A memento containing the serialized deck information.
- * @returns The converted Memento as a Card[] array.
- * */
-export function fromMemento(memento: DeckMemento): Card[] {
-    return [...memento.map(toCard)]
 }
 
 /**
