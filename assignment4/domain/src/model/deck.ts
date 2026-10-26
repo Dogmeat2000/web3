@@ -146,55 +146,70 @@ export function fromMemento(memento: DeckMemento): Card[] {
     return [...memento.map(toCard)]
 }
 
-// TODO: Rewrite these later
-/*private initializeDeck(): Card_old[] {
-    // Initialize _cards:
-    const redCards: Card_old[] = this.buildColoredCardStack('RED')
-    const greenCards: Card_old[] = this.buildColoredCardStack('GREEN')
-    const blueCards: Card_old[] = this.buildColoredCardStack('BLUE')
-    const yellowCards: Card_old[] = this.buildColoredCardStack('YELLOW')
-    const wildCards: Card_old[] = this.buildWildCardStack()
-
-    return [...redCards, ...greenCards, ...yellowCards, ...blueCards, ...wildCards]
+/**
+ * Initializes a clean/new Uno Card deck.
+ */
+export function initializeDeck(): Card[] {
+    return [
+        ...buildColoredCardStack('RED'),
+        ...buildColoredCardStack('GREEN'),
+        ...buildColoredCardStack('BLUE'),
+        ...buildColoredCardStack('YELLOW'),
+        ...buildWildCardStack()
+    ]
 }
 
-private buildColoredCardStack(color: Color_old): Card_old[] {
-    const cards: Card_old[] = []
+function buildColoredCardStack(color: Color): Card[] {
+    return [
+        // Create 1 x '0' Numbered card:
+        { type: 'NUMBERED', color: color, number: 0 } as Card,
 
-    // Create 19 numbered _cards of this color:
-    for (const number of validCardNumbers) {
-        cards.push({ type: 'NUMBERED', color: color, number: number }) // UNO has one number 0 card pr. color.
+        // Create 2 x '1-9' Numbered cards:
+        { type: 'NUMBERED', color: color, number: 1 } as Card,
+        { type: 'NUMBERED', color: color, number: 1 } as Card,
+        { type: 'NUMBERED', color: color, number: 2 } as Card,
+        { type: 'NUMBERED', color: color, number: 2 } as Card,
+        { type: 'NUMBERED', color: color, number: 3 } as Card,
+        { type: 'NUMBERED', color: color, number: 3 } as Card,
+        { type: 'NUMBERED', color: color, number: 4 } as Card,
+        { type: 'NUMBERED', color: color, number: 4 } as Card,
+        { type: 'NUMBERED', color: color, number: 5 } as Card,
+        { type: 'NUMBERED', color: color, number: 5 } as Card,
+        { type: 'NUMBERED', color: color, number: 6 } as Card,
+        { type: 'NUMBERED', color: color, number: 6 } as Card,
+        { type: 'NUMBERED', color: color, number: 7 } as Card,
+        { type: 'NUMBERED', color: color, number: 7 } as Card,
+        { type: 'NUMBERED', color: color, number: 8 } as Card,
+        { type: 'NUMBERED', color: color, number: 8 } as Card,
+        { type: 'NUMBERED', color: color, number: 9 } as Card,
+        { type: 'NUMBERED', color: color, number: 9 } as Card,
 
-        if(number != 0)
-            cards.push({ type: 'NUMBERED', color: color, number: number }) // UNO has 2 of each 1-9 _cards pr. color.
-    }
+        // Create 2 reverse cards:
+        { type: 'REVERSE', color: color } as Card,
+        { type: 'REVERSE', color: color } as Card,
 
-    for (let i: number = 0; i < 2; i++) {
-        // Create 2 reverse _cards:
-        cards.push({ type: 'REVERSE', color: color })
+        // Create 2 skip cards:
+        { type: 'SKIP', color: color } as Card,
+        { type: 'SKIP', color: color } as Card,
 
-        // Create 2 skip _cards:
-        cards.push({ type: 'SKIP', color: color })
-
-        // Create 2 draw _cards:
-        cards.push({ type: 'DRAW', color: color })
-    }
-
-    return cards
+        // Create 2 draw cards:
+        { type: 'DRAW', color: color },
+        { type: 'DRAW', color: color }
+    ]
 }
 
-private buildWildCardStack(): Card_old[] {
-    const cards: Card_old[] = []
+function buildWildCardStack(): Card[] {
+    return [
+        //Create 4 wild draw _cards:
+        { type: 'WILD DRAW' } as Card,
+        { type: 'WILD DRAW' } as Card,
+        { type: 'WILD DRAW' } as Card,
+        { type: 'WILD DRAW' } as Card,
 
-    // Create 4 wild draw _cards:
-    for (let i: number = 0; i < 4; i++) {
-        cards.push({ type: 'WILD DRAW' })
-    }
-
-    // Create 4 wild _cards:
-    for (let i: number = 0; i < 4; i++) {
-        cards.push({ type: 'WILD' })
-    }
-
-    return cards
-}*/
+        // Create 4 wild _cards:
+        { type: 'WILD' } as Card,
+        { type: 'WILD' } as Card,
+        { type: 'WILD' } as Card,
+        { type: 'WILD' } as Card
+    ]
+}

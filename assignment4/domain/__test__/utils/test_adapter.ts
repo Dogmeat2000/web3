@@ -1,11 +1,11 @@
 import { Shuffler, standardShuffler } from '../../src/utils/random_utils'
 import * as deck from '../../src/model/deck'
 import * as round from '../../src/model/round_old'
-import * as uno from '../../src/model/uno'
+import * as uno from '../../src/model/uno_old'
 import { Card } from "../../src/model/deck";
 
 export function createInitialDeck(): Card[] {
-  return deck.createInitialDeck()
+  return deck.initializeDeck()
 }
 
 export type RoundProps = {
