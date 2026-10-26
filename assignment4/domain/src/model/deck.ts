@@ -1,6 +1,5 @@
-import {DeckMemento} from "./deck.memento";
+import {DeckMemento, toCard} from "./deck.memento";
 import {Shuffler} from "../utils/random_utils";
-import {Deck_old} from "./deck_old";
 
 export const VALID_CARD_NUMBERS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const
 export const VALID_COLORS = ['BLUE', 'RED', 'GREEN', 'YELLOW'] as const;
@@ -102,28 +101,53 @@ export function dealFromDeck(cards: Card[]): { dealtCard: Card, dealtDeck: Card[
 /**
  * Shuffles the cards in a Deck using the provided shuffler, returning the shuffled deck.
  */
-export function shuffle(cards: Card[], shuffler: Shuffler<Card>): Card[] {
+export function shuffleCards(cards: Card[], shuffler: Shuffler<Card>): Card[] {
     return shuffler(cards)
 }
 
-// TODO: Continue from here
-filter(pred: (card: Card_old) => boolean): Deck_old {
-    return new DeckImpl_old(this._cards.filter(pred))
+
+/**
+ * Filters based on the provided predicate and returns a new Card array containing only the filtered cards.
+ * @returns The filtered Cards
+ */
+export function filterCards(cards: Card[], pred: (card: Card) => boolean): Card[] {
+    return [...cards.filter(pred)]
 }
 
-top(): Card_old | undefined {
-    return this._cards.at(-1);
+/**
+ * @returns The top-most Card in the card Array (Deck), or undefined if collection has no cards.
+ */
+export function topCard(cards: Card[]): Card | undefined {
+    return cards.at(-1);
 }
 
-push(card: Card_old): void {
-    this._cards.push(card)
+/**
+ * Adds a Card to the end (top) of the Card (Deck) stack.
+ * Returns an array with the card added.
+ */
+export function pushCard(cards: Card[], newCard: Card): Card[] {
+    return [...cards, newCard]
 }
 
-toMemento(): DeckMemento {
-    return this._cards.map(card => ({...card}))
+/**
+ * Converts these cards (deck) into a Memento type.
+ * @returns The memento converted cards (deck) as a DeckMemento type.
+ */
+export function toMemento(cards: Card[]): DeckMemento {
+    return cards.map(card => ({...card}))
 }
 
-private initializeDeck(): Card_old[] {
+/**
+ * Creates a card collection (Deck) from the specified Deck memento.
+ * @param memento A memento containing the serialized deck information.
+ * @returns The converted Memento as a Card[] array.
+ * */
+export function fromMemento(memento: DeckMemento): Card[] {
+    return [...memento.map(toCard)]
+}
+
+// TODO: Rewrite these later
+/*private initializeDeck(): Card_old[] {
     // Initialize _cards:
     const redCards: Card_old[] = this.buildColoredCardStack('RED')
     const greenCards: Card_old[] = this.buildColoredCardStack('GREEN')
@@ -173,16 +197,4 @@ private buildWildCardStack(): Card_old[] {
     }
 
     return cards
-}
-
-
-
-// TODO: FINISH REWRITING THIS!
-/**
- * Creates a new Deck object from the specified memento.
- * @param memento A memento containing the serialized deck information.
- * @returns The converted Memento as a Deck type.
- * *//*
-export function fromMemento(memento: DeckMemento): Deck {
-    return new DeckImpl_old(memento.map(toCard))
 }*/
