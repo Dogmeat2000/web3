@@ -1,7 +1,6 @@
 import {Shuffler } from "../utils/random_utils";
 import { Player } from "./player";
 import {Card, Color, dealFromDeck, shuffleCards, TypedCard} from "./deck";
-import * as deck from "./deck";
 import {createInitialDeck} from "../../__test__/utils/test_adapter";
 
 export type Round = {
@@ -82,10 +81,10 @@ export function play(cardIndex: number, round: Round, namedColor?: Color): Round
             discardPile: [...roundWithAppliedCardEffects.discardPile, playedCard], // Game Rule: Place card on top of Discard pile'
             activePlayer: {
                 ...roundWithAppliedCardEffects.activePlayer,
-                hand: roundWithAppliedCardEffects.activePlayer.hand.filter(card => card === playedCard), // Game Rule: Remove card from hand
+                hand: roundWithAppliedCardEffects.activePlayer.hand.filter(card => card !== playedCard), // Game Rule: Remove card from hand
             },
             players: roundWithAppliedCardEffects.players.map(player => player.playerId === roundWithAppliedCardEffects.activePlayer.playerId ?
-                { ...player, hand: player.hand.filter(card => card === playedCard)} : player) // Game Rule: Remove card from hand
+                { ...player, hand: player.hand.filter(card => card !== playedCard)} : player) // Game Rule: Remove card from hand
         })
     } else {
         throw new Error("Can't play card")
@@ -101,13 +100,20 @@ export function play(cardIndex: number, round: Round, namedColor?: Color): Round
 }
 
 /**
+ * Returns the top card on the discard pile, from the provided Round.
+ */
+export function topOfDiscard(round: Round): Card {
+    return round.discardPile.at(-1)!
+}
+
+/**
  * Checks that the card with the provided index on the active players hand in the provided round, can be played.
  */
 export function canPlay(cardIndex: number, round: Round): boolean {
     if(cardIndex < 0 || cardIndex >= round.players.length) {
         return false
     }
-    return canPlayCard(round.players[round.activePlayer.playerId].hand[cardIndex], round.players[round.activePlayer.playerId].hand, round.discardPile.at(-1)!, round.activeCardColor)
+    return canPlayCard(round.players[round.activePlayer.playerId].hand[cardIndex], round.players[round.activePlayer.playerId].hand, topOfDiscard(round), round.activeCardColor)
 }
 
 /**
@@ -171,7 +177,8 @@ function applyPlayedCardEffects(cardIndex: number, round: Round, namedColor?: Co
                 // Game Rule: Skip the next player, if there are only 2 players.
                 return {
                     ...round,
-                    activeCardColor: playedCard.color
+                    activeCardColor: playedCard.color,
+                    skipNextPlayer: true
                 }
             }
 
@@ -285,9 +292,24 @@ export function canPlayAny(round: Round): boolean {
 /**
  * Draws one or more cards onto the currently active players hand. Resets the amount of cards the next player should draw to 1.
  * Amount of cards drawn depends on the aggregate number of draw cards played by previous players.
+ * Returns the updated Round.
  */
-export function draw(): void {
-    //TODO
+export function draw(round: Round): Round {
+    // Game Rule: Cannot draw if round has already ended
+    if(hasEnded(round)) {
+        throw new Error(`Cannot draw. Round has already ended. Winner is: ${checkForWinner(round)}`)
+    }
+
+    // Game Rule: Cannot draw cards, if player already drew cards in this turn:
+    if(round.activePlayer.hasDrawnCardInTurn) {
+        throw new Error(`Cannot draw. Player has already drawn cards in this turn. Current payer is: ${round.activePlayer.playerName}`)
+    }
+
+    // Game Rule: Players must play any playable cards. Draws can only be made if no playable card is on hand, or a special card forced the draw.
+    if(round.noOfCardsPlayerMustDraw === 1 && canPlayAny(round)) {
+        throw new Error("Cannot draw while holding a playable card")
+    }
+    return drawCards(round.activePlayer.playerId, round.noOfCardsPlayerMustDraw, round)
 }
 
 /**
@@ -409,7 +431,7 @@ function createEmptyRound(players: string[], dealer: number, shuffler: Shuffler<
         activeCardColor: 'BLUE',
         activePlayer: newPlayers[dealer],
         playPassDirection: 'clockwise',
-        noOfCardsPlayerMustDraw: 0,
+        noOfCardsPlayerMustDraw: 1,
         skipNextPlayer: false
     }
 }
@@ -563,10 +585,11 @@ function drawCards(playerIdForDrawingPlayer: number, numberOfCardsToDraw: number
     // Game Rule: If drawn card was not playable, advance to next player.
     if(drawnCards.length === 1 && !canPlayCard(drawnCards[0],
             reshuffledRound.players[playerIdForDrawingPlayer].hand,
-            reshuffledRound.discardPile[0],
+            topOfDiscard(reshuffledRound),
             reshuffledRound.activeCardColor)) {
 
-        return advanceToNextPlayer({
+        return advanceToNextPlayer(
+            replenishDrawPileIfEmpty({
             ...reshuffledRound,
             noOfCardsPlayerMustDraw: 1,
 
@@ -579,11 +602,11 @@ function drawCards(playerIdForDrawingPlayer: number, numberOfCardsToDraw: number
 
             // Update draw pile
             drawPile: remainingCards
-        })
+        }))
     }
 
     //Game Rule: Player must immediately play a drawn card, if that card can legally be played:
-    return {
+    return replenishDrawPileIfEmpty({
         ...reshuffledRound,
         noOfCardsPlayerMustDraw: 1,
 
@@ -597,7 +620,11 @@ function drawCards(playerIdForDrawingPlayer: number, numberOfCardsToDraw: number
 
         // Update draw pile
         drawPile: remainingCards
-    }
+    })
+}
+
+function replenishDrawPileIfEmpty(round: Round): Round{
+    return round.drawPile.length === 0 ? redistributeDiscardPile(round) : round
 }
 
 /**

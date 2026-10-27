@@ -1,6 +1,6 @@
 import { describe, it, test, expect } from '@jest/globals'
 import { createRound} from '../utils/test_adapter'
-import type { Round_old } from '../../src/model/round_old'
+import type { Round } from '../../src/model/round'
 import { canPlay, 
          catchUnoFailure, 
          sayUno,
@@ -8,12 +8,12 @@ import { canPlay,
          draw, 
          play, 
          hasEnded,
-         winner,
+         checkForWinner,
          canPlayAny,
-         score} from '../../src/model/round_old'
-import { deterministicShuffle, shuffleBuilder, successiveShufflers } from './shuffling'
+         score} from '../../src/model/round'
+import { deterministicShuffle, shuffleBuilder, successiveShufflers } from '../utils/shuffling'
 import * as _ from 'lodash'
-import { createInitialDeck } from '../../src/model/deck_old'
+import { initializeDeck } from '../../src/model/deck'
 import { standardShuffler } from '../../src/utils/random_utils'
 
 describe('catching failure to say "UNO!"', () => {
@@ -31,7 +31,7 @@ describe('catching failure to say "UNO!"', () => {
 
     describe("single UNO scenario", () => {
       const shuffler = builder.build()
-      const round: Round_old = _.flow([
+      const round: Round = _.flow([
         draw,
         _.partial(play, 2, undefined),
         draw,
@@ -39,18 +39,18 @@ describe('catching failure to say "UNO!"', () => {
         draw
       ]) (createRound({players: ['a', 'b', 'c', 'd'], dealer: 3, shuffler, cardsPerPlayer: 2}))
     test("set up is as expected", () => {
-      expect(round.hands[0].length).toEqual(2)
-      expect(round.hands[1].length).toEqual(3)
-      expect(round.hands[2].length).toEqual(3)
-      expect(round.hands[3].length).toEqual(3)
-      expect(round.playerInTurn).toEqual(0)
+      expect(round.players[0].hand.length).toEqual(2)
+      expect(round.players[1].hand.length).toEqual(3)
+      expect(round.players[2].hand.length).toEqual(3)
+      expect(round.players[3].hand.length).toEqual(3)
+      expect(round.activePlayer.playerId).toEqual(0)
       expect(canPlay(0, round)).toBeTruthy()
     })
     it("fails if the player hasn't played penultimate card", () => {
       expect(checkUnoFailure({accuser: 1, accused: 0}, round)).toBeFalsy()
     })
     it("succeeds if the player has one card and hasn't said 'UNO!'", () => {
-      const res = play(0, undefined, round)
+      const res = play(0, round, undefined)
       expect(checkUnoFailure({accuser: 1, accused: 0}, res)).toBeTruthy()
     })
     it("adds 4 cards to the hand of the accused player if successful", () => {
@@ -69,7 +69,7 @@ describe('catching failure to say "UNO!"', () => {
       expect(res.drawPile.length).toBe(drawPileSize - 4)
     })
     it("succeeds irrespective of the accuser", () => {
-      const res = play(0, undefined, round)
+      const res = play(0, round, undefined)
       expect(checkUnoFailure({accuser: 2, accused: 0}, res)).toBeTruthy()
     })
     it("fails if the next player has already played", () => {
@@ -94,7 +94,7 @@ describe('catching failure to say "UNO!"', () => {
       expect(checkUnoFailure({accuser: 2, accused: 0}, res)).toBeFalsy()
     })
     it("can succeed after first accusing the wrong player", () => {
-      const res = play(0, undefined, round)
+      const res = play(0, round, undefined)
       expect(checkUnoFailure({accuser: 2, accused: 1}, res)).toBeFalsy()
       expect(checkUnoFailure({accuser: 2, accused: 0}, res)).toBeTruthy()
     })
@@ -113,7 +113,7 @@ describe('catching failure to say "UNO!"', () => {
       expect(checkUnoFailure({accuser: 2, accused: 0}, res)).toBeFalsy()
     })
     it("still succeeds if the player has said 'UNO!' before another players turn", () => {
-      const round: Round_old = _.flow([
+      const round: Round = _.flow([
         draw,
         _.partial(play, 2, undefined),
         draw,
@@ -129,8 +129,8 @@ describe('catching failure to say "UNO!"', () => {
   describe("emptying the draw pile", () => {
     builder.hand(3).is({type: 'NUMBERED', color: 'BLUE', number: 4}, {type: 'REVERSE', color: 'RED'})
     const shuffler = builder.build()
-    const cards = shuffler(createInitialDeck()).slice(0, 14)
-    const round: Round_old = _.flow([
+    const cards = shuffler(initializeDeck()).slice(0, 14)
+    const round: Round = _.flow([
       draw,
       _.partial(play, 2, undefined),
       draw,
@@ -139,18 +139,18 @@ describe('catching failure to say "UNO!"', () => {
       _.partial(play, 0, undefined)
     ])(createRound({players: ['a', 'b', 'c', 'd'], dealer: 3, shuffler: successiveShufflers(deterministicShuffle(cards), standardShuffler), cardsPerPlayer: 2}))
     test("set up is as expected", () => {
-      expect(round.hands[0].length).toEqual(2)
-      expect(round.hands[1].length).toEqual(3)
-      expect(round.hands[2].length).toEqual(3)
-      expect(round.hands[3].length).toEqual(1)
-      expect(round.playerInTurn).toEqual(0)
+      expect(round.players[0].hand.length).toEqual(2)
+      expect(round.players[1].hand.length).toEqual(3)
+      expect(round.players[2].hand.length).toEqual(3)
+      expect(round.players[3].hand.length).toEqual(1)
+      expect(round.activePlayer.playerId).toEqual(0)
       expect(canPlay(0, round)).toBeTruthy()
       expect(round.drawPile.length).toEqual(2)
       expect(round.discardPile.length).toEqual(3)
     })
     test("adding 4 cards to the hand shuffles the draw pile if necessary", () => {
-      const res = play(0, undefined, round)
-      expect(res.hands[0].length).toBe(1)
+      const res = play(0, round, undefined)
+      expect(res.players[0].hand.length).toBe(1)
       expect(res.drawPile.length).toEqual(2)
       expect(res.discardPile.length).toEqual(4)
       const final = catchUnoFailure({accuser: 1, accused: 0}, res)
@@ -163,7 +163,7 @@ describe('catching failure to say "UNO!"', () => {
   describe("Multi UNO scenario", () => {
     builder.hand(3).is({type: 'NUMBERED', color: 'BLUE', number: 4}, {type: 'REVERSE', color: 'RED'})
     const shuffler = builder.build()
-    const cards = shuffler(createInitialDeck()).slice(0, 14)
+    const cards = shuffler(initializeDeck()).slice(0, 14)
     const round = _.flow([
       draw,
       _.partial(play, 2, undefined),
@@ -177,7 +177,7 @@ describe('catching failure to say "UNO!"', () => {
       expect(round.hands[3].length).toEqual(2)
       expect(round.playerInTurn).toEqual(3)
       expect(canPlay(0, round)).toBeTruthy()
-      const res = play(0, undefined, round)
+      const res = play(0, round, undefined)
       expect(canPlay(0, res)).toBeTruthy()
     })
     it("still succeeds if the player has said 'UNO!' before another player plays", () => {
@@ -240,7 +240,7 @@ describe("ending the round", () => {
       expect(hasEnded(round)).toBeFalsy()
     })
     it("doesn't return a winner", () => {
-      expect(winner(round)).toBeUndefined();
+      expect(checkForWinner(round)).toBeUndefined();
     })
   })
 
@@ -250,22 +250,22 @@ describe("ending the round", () => {
       .hand(0).is({ type: 'NUMBERED', color: 'GREEN', number: 8 })
       .hand(1).is({ type: 'NUMBERED', color: 'GREEN', number: 4 })
       .build()
-    const round = play(0, undefined, createRound({players: ['a', 'b', 'c', 'd'], dealer: 3, shuffler, cardsPerPlayer: 1}))
+    const round = play(0, createRound({players: ['a', 'b', 'c', 'd'], dealer: 3, shuffler, cardsPerPlayer: 1}), undefined)
     it("returns true from hasEnded()", () => {
       expect(hasEnded(round)).toBeTruthy()
     })
     it("returns the winner", () => {
-      expect(winner(round)).toEqual(0);
+      expect(checkForWinner(round)).toEqual(0);
     })
     it("makes the player in turn undefined", () => {
-      expect(round.playerInTurn).toBeUndefined()
+      expect(round.activePlayer.playerId).toBeUndefined()
     })
     it("ceases play", () => {
       expect(canPlay(0, round)).toBeFalsy()
       expect(canPlayAny(round)).toBeFalsy()
     })
     it("gives error on attempted play", () => {
-      expect(() => play(0, undefined, round)).toThrow()
+      expect(() => play(0, round, undefined)).toThrow()
     })
     it("gives error on attempted draw", () => {
       expect(() => draw(round)).toThrow()
@@ -288,45 +288,45 @@ describe("score", () => {
   })
   it("is defined after the last card is played", () => {
     const shuffler = builder.build()
-    const round = play(0, undefined, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}))
+    const round = play(0, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}), undefined)
     expect(score(round)).toBeDefined()
   })
   it("has the value of the card number if the opponent holds a numbered card", () => {
     for(let number = 0; number <= 9; number++) {
       builder.hand(1).is({type: 'NUMBERED', number})
       const shuffler = builder.build()
-      const round = play(0, undefined, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}))
+      const round = play(0, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}), undefined)
       expect(score(round)).toEqual(number)
     }
   })
   it("has the value 20 if the opponent holds a draw card", () => {
     builder.hand(1).is({type: 'DRAW'})
     const shuffler = builder.build()
-    const round = play(0, undefined, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}))
+    const round = play(0, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}), undefined)
     expect(score(round)).toEqual(20)
   })
   it("has the value 20 if the opponent holds a reverse card", () => {
     builder.hand(1).is({type: 'REVERSE'})
     const shuffler = builder.build()
-    const round = play(0, undefined, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}))
+    const round = play(0, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}), undefined)
     expect(score(round)).toEqual(20)
   })
   it("has the value 20 if the opponent holds a skip card", () => {
     builder.hand(1).is({type: 'SKIP'})
     const shuffler = builder.build()
-    const round = play(0, undefined, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}))
+    const round = play(0, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}), undefined)
     expect(score(round)).toEqual(20)
   })
   it("has the value 50 if the opponent holds a wild card", () => {
     builder.hand(1).is({type: 'WILD'})
     const shuffler = builder.build()
-    const round = play(0, undefined, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}))
+    const round = play(0, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}), undefined)
     expect(score(round)).toEqual(50)
   })
   it("has the value 50 if the opponent holds a wild draw card", () => {
     builder.hand(1).is({type: 'WILD DRAW'})
     const shuffler = builder.build()
-    const round = play(0, undefined, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}))
+    const round = play(0, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}), undefined)
     expect(score(round)).toEqual(50)
   })
   it("adds the cards if the opponent have more than one card", () => {
@@ -334,8 +334,8 @@ describe("score", () => {
     builder.hand(1).is({type: 'WILD DRAW'})
     builder.drawPile().is({number: 5}, {type: 'REVERSE'})
     const shuffler = builder.build()
-    const round = play(0, undefined, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}))
-    expect(round.hands[1].length).toEqual(3)
+    const round = play(0, createRound({players: ['a', 'b'], dealer: 1, shuffler, cardsPerPlayer: 1}), undefined)
+    expect(round.players[1].hand.length).toEqual(3)
     expect(score(round)).toEqual(75)
   })
   it("adds the cards of all opponents if there are more than 2 players", () => {
@@ -347,7 +347,7 @@ describe("score", () => {
       .hand(3).is({number: 3})
       .drawPile().is({number: 5}, {type: 'REVERSE'})
     const shuffler = builder.build()
-    const round = play(0, undefined, createRound({players: ['a', 'b', 'c', 'd'], dealer: 3, shuffler, cardsPerPlayer: 1}))
+    const round = play(0, createRound({players: ['a', 'b', 'c', 'd'], dealer: 3, shuffler, cardsPerPlayer: 1}), undefined)
     expect(score(round)).toEqual(85)
   })
 })
