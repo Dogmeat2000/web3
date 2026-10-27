@@ -1,6 +1,6 @@
 import {Shuffler } from "../utils/random_utils";
 import { Player } from "./player";
-import {Card, Color, dealFromDeck, shuffleCards, TypedCard} from "./deck";
+import {Card, Color, shuffleCards, TypedCard} from "./deck";
 import {createInitialDeck} from "../../__test__/utils/test_adapter";
 
 export type Round = {
@@ -15,8 +15,6 @@ export type Round = {
     readonly noOfCardsPlayerMustDraw: number,
     readonly skipNextPlayer: boolean,
     readonly endCallbacks?: ((event: { winner: number}) => void)[]
-    readonly saidUno?: boolean[], //One value pr. player, indicating whether that player has said UNO. Index positions correspond with playerIds.
-    readonly hasDrawn?: boolean[] // One value pr. player, indicating whether that player has drawn cards in their turn. Index positions correspond with playerIds.
 }
 
 export function createRound(players: string[], dealer: number, shuffler: Shuffler<Card>, cardsPerPlayer: number, initializeFreshRound: boolean = true): Round {
@@ -110,7 +108,7 @@ export function topOfDiscard(round: Round): Card {
  * Checks that the card with the provided index on the active players hand in the provided round, can be played.
  */
 export function canPlay(cardIndex: number, round: Round): boolean {
-    if(cardIndex < 0 || cardIndex >= round.players.length) {
+    if(cardIndex < 0 || cardIndex >= round.players.length || hasEnded(round)) {
         return false
     }
     return canPlayCard(round.players[round.activePlayer.playerId].hand[cardIndex], round.players[round.activePlayer.playerId].hand, topOfDiscard(round), round.activeCardColor)
@@ -315,18 +313,100 @@ export function draw(round: Round): Round {
 /**
  * Flags the specified player as having said 'UNO'
  * @param playerId playerID for the player that should be flagged.
+ * @param round The round in which to attempt to say Uno.
  */
-export function sayUno(playerId: number): void {
-    //TODO
+export function sayUno(playerId: number, round: Round): Round {
+    // Game Rule: Players cannot say 'UNO' if round has already ended
+    if(hasEnded(round)){
+        throw new Error(`Cannot say UNO. Round has already ended. Winner is: ${checkForWinner(round)}`)
+    }
+
+    if(playerId < 0 || playerId >= round.players.length) {
+        throw new Error("Invalid playerId.")
+    }
+
+    // Game Rule: Cannot say 'UNO' if player has more than 2 cards on hand:
+    if(round.players[playerId].hand.length > 2) {
+        throw new Error(`Cannot say UNO when you have more than 2 cards on hand.`)
+    }
+
+    // Game Rule: Cannot say 'UNO' if next player has drawn cards, or has played his/her card:
+    const step = round.playPassDirection === 'counterclockwise' ? -1 : 1
+    const nextAfterPlayer: number = (playerId + step + round.players.length) % round.players.length
+    const isOwnTurn: boolean = round.activePlayer.playerId === playerId
+    const isNextInTurn: boolean = round.activePlayer.playerId === nextAfterPlayer
+
+    if(isOwnTurn && isNextInTurn){
+        // Game Rule: Saying Uno outside of your turn, does nothing.
+        return round
+    }
+
+    if(isNextInTurn && round.players[round.activePlayer.playerId].hasDrawnCardInTurn) {
+        throw new Error(`Cannot say UNO. Next player has already drawn or played a card`)
+    }
+
+    return {
+        ...round,
+        players: round.players.map((player: Player): Player => player.playerId !== playerId ? player : {
+            ...player,
+            hasSaidUno: true
+        }),
+    }
 }
 
 /**
  * Check if accused player failed to say UNO and applies punishment if caught by another player.
  * @param players An object containing the playerID's for the accuser and the accused.
- * @returns True if the accused player did in fact fail to say UNO. Otherwise, false.
+ * @param round The round in which to attempt the Uno catch.
+ * @returns The updated Round.
  */
-export function catchUnoFailure(players: { accuser: number, accused: number }): boolean {
-    //TODO
+export function catchUnoFailure(players: { accuser: number, accused: number }, round: Round): Round {
+    if(!checkUnoFailure(players, round)) {
+        return round
+    }
+
+    // Game Rule: Accused player must draw 4 cards as punishment.
+    const accusedPlayerDrewRound: Round = drawCards(players.accused, 4, round)
+
+    return {
+        ...accusedPlayerDrewRound,
+        noOfCardsPlayerMustDraw: round.noOfCardsPlayerMustDraw,
+        players: accusedPlayerDrewRound.players.map((player: Player): Player => player.playerId !== players.accused ? player : {
+            ...player,
+            hasDrawnCardInTurn: false
+        })
+    }
+}
+
+/**
+ * Checks if an accusation of failure to say Uno would succeed now, on the specified Round.
+ * Returns true if the accused failed to say Uno in time. Otherwise, returns false if there is nothing to catch.
+ */
+export function checkUnoFailure(players: { accuser: number, accused: number }, round: Round): boolean {
+    // Validation: player id's must be valid.
+    if(players.accuser < 0 || players.accuser >= round.players.length)
+        throw new Error("Invalid playerId for accuser.")
+
+    if(players.accused < 0 || players.accused >= round.players.length)
+        throw new Error("Invalid playerId for accused.")
+
+    // Game Rule: If next player has already played, a player cannot be caught for forgetting to say 'UNO'.
+    const step = round.playPassDirection === 'counterclockwise' ? -1 : 1
+    const nextAfterPlayer: number = (players.accused + step + round.players.length) % round.players.length
+    const isNextInTurn: boolean = round.activePlayer.playerId === nextAfterPlayer
+
+    if(!isNextInTurn) {
+        return false
+    }
+
+    // Game Rule: If next player has already drawn, the previous player can no longer be caught.
+    if(round.players[round.activePlayer.playerId].hasDrawnCardInTurn) {
+        return false
+    }
+
+    // Game Rule: If a player fails to announce 'UNO' while only having 1 card on hand (in their turn), they can be caught by another player:
+    const accusedPlayer: Player = round.players[players.accused]
+    return !accusedPlayer.hasSaidUno && accusedPlayer.hand.length === 1;
 }
 
 /**
@@ -352,8 +432,28 @@ export function checkForWinner(round: Round): Player | undefined {
 /**
  * @returns The score that the winning player gained in this round. Undefined, if the round has not ended yet.
  */
-export function score(): number | undefined {
-    //TODO
+export function score(round: Round): number | undefined {
+    // Game Logic: There can be no score before there is a winner and the round has ended
+    if(!hasEnded(round)){
+        return undefined
+    }
+
+    return round.players.reduce(
+        (totalScore, player) => totalScore + player.hand.reduce((scoreOnHand, card) => {
+            switch(card.type){
+                case 'NUMBERED':
+                    return scoreOnHand + card.number
+                case 'REVERSE':
+                case "SKIP":
+                case 'DRAW':
+                    return scoreOnHand + 20
+                case 'WILD':
+                case 'WILD DRAW':
+                    return scoreOnHand + 50
+                default:
+                    return scoreOnHand
+            }}, 0),
+        0)
 }
 
 /**
@@ -555,7 +655,8 @@ function advanceToNextPlayer(round: Round): Round {
     } else {
         return {
             ...round,
-            activePlayer: {...nextPlayer, hasDrawnCardInTurn: false}
+            activePlayer: {...nextPlayer, hasDrawnCardInTurn: false},
+            players: round.players.map((player: Player): Player => ({ ...player, hasDrawnCardInTurn: false }))
         }
     }
 }

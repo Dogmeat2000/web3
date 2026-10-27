@@ -4,7 +4,7 @@ import type { Round } from '../../src/model/round'
 import { canPlay, 
          catchUnoFailure, 
          sayUno,
-         checkUnoFailure, 
+         checkUnoFailure,
          draw, 
          play, 
          hasEnded,
@@ -33,7 +33,7 @@ describe('catching failure to say "UNO!"', () => {
       const shuffler = builder.build()
       const round: Round = _.flow([
         draw,
-        _.partial(play, 2, undefined),
+        (round: Round) => play(2, round),
         draw,
         draw,
         draw
@@ -55,7 +55,7 @@ describe('catching failure to say "UNO!"', () => {
     })
     it("adds 4 cards to the hand of the accused player if successful", () => {
       const res = _.flow([
-        _.partial(play, 0, undefined), 
+        (round: Round) => play(2, round),
         _.partial(catchUnoFailure, {accuser: 1, accused: 0})
       ])(round)
       expect(res.hands[0].length).toEqual(5)
@@ -63,7 +63,7 @@ describe('catching failure to say "UNO!"', () => {
     it("takes the added cards from the draw pile", () => {
       const drawPileSize = round.drawPile.length
       const res = _.flow([
-        _.partial(play, 0, undefined), 
+        (round: Round) => play(2, round),
         _.partial(catchUnoFailure, {accuser: 1, accused: 0})
       ])(round)
       expect(res.drawPile.length).toBe(drawPileSize - 4)
@@ -74,21 +74,21 @@ describe('catching failure to say "UNO!"', () => {
     })
     it("fails if the next player has already played", () => {
       const res = _.flow([
-        _.partial(play, 0, undefined),
-        _.partial(play, 0, undefined),
+        (round: Round) => play(2, round),
+        (round: Round) => play(2, round),
       ])(round)
       expect(checkUnoFailure({accuser: 3, accused: 0}, res)).toBeFalsy()
     })
     it("fails if the next player has drawn a card", () => {
       const res = _.flow([
-        _.partial(play, 1, undefined),
+        (round: Round) => play(1, round),
         draw
       ])(round)
       expect(checkUnoFailure({accuser: 3, accused: 0}, res)).toBeFalsy()
     })
     it("cannot be applied twice", () => {
       const res = _.flow([
-        _.partial(play, 0 , undefined),
+        (round: Round) => play(0, round),
         _.partial(catchUnoFailure, {accuser: 2, accused: 0})
       ])(round)
       expect(checkUnoFailure({accuser: 2, accused: 0}, res)).toBeFalsy()
@@ -101,13 +101,13 @@ describe('catching failure to say "UNO!"', () => {
     it("fails if the accused has said 'UNO!' before playing", () => {
       const res = _.flow([
         _.partial(sayUno, 0),
-        _.partial(play, 0, undefined)
+        (round: Round) => play(0, round),
       ])(round)
       expect(checkUnoFailure({accuser: 2, accused: 0}, res)).toBeFalsy()
     })
     it("fails if the accused has said 'UNO!' after playing but before the accusation", () => {
       const res = _.flow([
-        _.partial(play, 0, undefined),
+        (round: Round) => play(0, round),
         _.partial(sayUno, 0)
       ])(round)
       expect(checkUnoFailure({accuser: 2, accused: 0}, res)).toBeFalsy()
@@ -115,14 +115,14 @@ describe('catching failure to say "UNO!"', () => {
     it("still succeeds if the player has said 'UNO!' before another players turn", () => {
       const round: Round = _.flow([
         draw,
-        _.partial(play, 2, undefined),
+        (round: Round) => play(2, round),
         draw,
         draw,
         _.partial(sayUno, 0),
         draw,
-        _.partial(play, 0, undefined)
+        (round: Round) => play(0, round),
       ])(createRound({players: ['a', 'b', 'c', 'd'], dealer: 3, shuffler, cardsPerPlayer: 2}))
-      expect(checkUnoFailure({accuser: 1, accused: 0}, round)).toBeTruthy()    
+      expect(checkUnoFailure({accuser: 1, accused: 0}, round)).toBeTruthy()
     })
   })
 
@@ -132,11 +132,11 @@ describe('catching failure to say "UNO!"', () => {
     const cards = shuffler(initializeDeck()).slice(0, 14)
     const round: Round = _.flow([
       draw,
-      _.partial(play, 2, undefined),
+      (round: Round) => play(2, round),
       draw,
       draw,
       _.partial(sayUno, 3),
-      _.partial(play, 0, undefined)
+      (round: Round) => play(0, round),
     ])(createRound({players: ['a', 'b', 'c', 'd'], dealer: 3, shuffler: successiveShufflers(deterministicShuffle(cards), standardShuffler), cardsPerPlayer: 2}))
     test("set up is as expected", () => {
       expect(round.players[0].hand.length).toEqual(2)
@@ -154,7 +154,7 @@ describe('catching failure to say "UNO!"', () => {
       expect(res.drawPile.length).toEqual(2)
       expect(res.discardPile.length).toEqual(4)
       const final = catchUnoFailure({accuser: 1, accused: 0}, res)
-      expect(final.hands[0].length).toBe(5)
+      expect(final.players[0].hand.length).toBe(5)
       expect(final.drawPile.length).toEqual(1)
       expect(final.discardPile.length).toEqual(1)
     })
@@ -166,7 +166,7 @@ describe('catching failure to say "UNO!"', () => {
     const cards = shuffler(initializeDeck()).slice(0, 14)
     const round = _.flow([
       draw,
-      _.partial(play, 2, undefined),
+      (round: Round) => play(2, round),
       draw,
       draw
     ])(createRound({players: ['a', 'b', 'c', 'd'], dealer: 3, shuffler: deterministicShuffle(cards), cardsPerPlayer: 2}))
@@ -184,27 +184,27 @@ describe('catching failure to say "UNO!"', () => {
       const res = _.flow([
         _.partial(sayUno, 0),
         _.partial(sayUno, 3),
-        _.partial(play, 0, undefined),
-        _.partial(play, 0, undefined),
+        (round: Round) => play(0, round),
+        (round: Round) => play(0, round),
       ])(round)
-      expect(checkUnoFailure({accuser: 1, accused: 0}, res)).toBeTruthy()    
+      expect(checkUnoFailure({accuser: 1, accused: 0}, res)).toBeTruthy()
     })
     it("still fails even if another player says 'UNO!' after", () => {
       const res = _.flow([
-        _.partial(play, 0, undefined),
+        (round: Round) => play(0, round),
         _.partial(sayUno, 0),
         _.partial(sayUno, 3),
-        _.partial(play, 0, undefined),
+        (round: Round) => play(0, round),
       ])(round)
-      expect(checkUnoFailure({accuser: 1, accused: 0}, res)).toBeFalsy()    
+      expect(checkUnoFailure({accuser: 1, accused: 0}, res)).toBeFalsy()
     })
     it("still fails even if another player has already said 'UNO!'", () => {
       const res = _.flow([
-        _.partial(play, 0, undefined),
+        (round: Round) => play(0, round),
         _.partial(sayUno, 0),
         _.partial(sayUno, 3),
       ])(round)
-      expect(checkUnoFailure({accuser: 1, accused: 3}, res)).toBeFalsy()    
+      expect(checkUnoFailure({accuser: 1, accused: 3}, res)).toBeFalsy()
     })
   })
 
@@ -255,7 +255,7 @@ describe("ending the round", () => {
       expect(hasEnded(round)).toBeTruthy()
     })
     it("returns the winner", () => {
-      expect(checkForWinner(round)).toEqual(0);
+      expect(checkForWinner(round)?.playerId).toEqual(0);
     })
     it("makes the player in turn undefined", () => {
       expect(round.activePlayer.playerId).toBeUndefined()
