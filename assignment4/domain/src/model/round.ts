@@ -1,6 +1,6 @@
 import {Shuffler } from "../utils/random_utils";
 import { Player } from "./player";
-import {Card, Color, dealFromDeck, shuffleCards} from "./deck";
+import {Card, Color, dealFromDeck, shuffleCards, TypedCard} from "./deck";
 import * as deck from "./deck";
 import {createInitialDeck} from "../../__test__/utils/test_adapter";
 
@@ -23,12 +23,14 @@ export type Round = {
 export function createRound(players: string[], dealer: number, shuffler: Shuffler<Card>, cardsPerPlayer: number, initializeFreshRound: boolean = true): Round {
     if(validPlayerCount(players)) {
         return initializeFreshRound ?
-            createEmptyRound(players, dealer, shuffler) :
             initializeRoundFromEmpty(
                 createEmptyRound(players, dealer, shuffler),
                 cardsPerPlayer
-            )
+            ) :
+            createEmptyRound(players, dealer, shuffler)
+
     }
+    throw new Error(`Invalid number of players specified. Specified ${players.length} players, expected players to be within 2 and 10 players.`)
 }
 
 /**
@@ -57,44 +59,94 @@ export function getPlayerObj(round: Round, playerId: number): Player | undefined
  * @returns The card that was played.
  */
 export function play(cardIndex: number, namedColor?: Color): Card {
+    // TODO
+}
 
+// TODO
+export function canPlay() {
+    // TODO
 }
 
 /**
- * @param playerId The id of a player.
- * @returns The cards that are currently on the specified players' hand.
- */
-export function playerHand(playerId: number): Card_old[] {
-    //TODO
-}
-
-/**
- * @return The Discard Pile as a Deck.
- */
-export function discardPile(): Deck_old {
-    //TODO
-}
-
-/**
- * @return The Draw Pile as a Deck.
- */
-export function drawPile(): Deck_old {
-    //TODO
-}
-
-/**
- * @return The playerId of the currently active player.
- */
-export function playerInTurn(): number | undefined {
-    //TODO
-}
-
-/**
- * @param cardIndex index number for the card on the players hand to check play eligibility for.
+ * @param cardToPlay The Card to check play eligibility for.
+ * @param playerHand The hand of the player who is attempting to play a card.
+ * @param topCardFromDiscardPile The card to check play eligibility against.
+ * @param activeColor The color that is currently active in the Round.
  * @return True if the card on the specified index position in the currently active players hand can be played. Otherwise, returns False.
  */
-export function canPlay(cardIndex: number): boolean {
-    //TODO
+function canPlayCard(cardToPlay: Card, playerHand: Card[], topCardFromDiscardPile: Card, activeColor: Color): boolean {
+    switch(cardToPlay.type){
+        case 'NUMBERED':
+            return canPlayNumberedCard(cardToPlay, topCardFromDiscardPile, activeColor)
+
+        case 'SKIP':
+            return canPlaySkipCard(cardToPlay, topCardFromDiscardPile, activeColor)
+
+        case 'REVERSE':
+            return canPlayReverseCard(cardToPlay, topCardFromDiscardPile, activeColor)
+
+        case 'DRAW':
+            return canPlayDrawCard(cardToPlay, topCardFromDiscardPile, activeColor)
+
+        case 'WILD':
+            return canPlayWildCard()
+
+        case 'WILD DRAW':
+            return canPlayWildDrawCard(playerHand, activeColor)
+    }
+}
+
+/**
+ * Validates if the provided numbered card is valid to play against the provided discardPile card, when the specified color is active.
+ */
+function canPlayNumberedCard(numberedCard: TypedCard<'NUMBERED'>, discardPileCard: Card, activeColor: Color): boolean {
+    // Game Rule: NUMBERED cards are legal to play on top of another card with the same color, or a card with the same number
+    return numberedCard.color === activeColor || (discardPileCard.type === 'NUMBERED' && discardPileCard.number === numberedCard.number);
+}
+
+/**
+ * Validates if the player is eligible to play a Wild Draw card, based on the current hand of the player and the currently active color.
+ */
+function canPlayWildDrawCard(playerHand: Card[], activeColor: Color): boolean {
+    // Game Rule: WILD DRAW 4 card can be played only if the player doesn't hold any cards that match the color of the card previously played
+    for(const card of playerHand) {
+        if('color' in card && card.color === activeColor) {
+            return true
+        }
+    }
+    return false
+}
+
+/**
+ * Validates if the player is eligible to play a Wild card.
+ */
+function canPlayWildCard(): boolean {
+    // Game Rule: WILD cards are always legal to play, but remember that the player must name a color when actually playing the card
+    return true
+}
+
+/**
+ * Validates if a player is eligible to play the provided skip card, given the provided discard pile Card and active color.
+ */
+function canPlaySkipCard(skipCard: TypedCard<'SKIP'>, discardPileCard: Card, activeColor: Color): boolean {
+    // Game Rule: SKIP cards are legal to play on top of another card with the same color or type
+    return skipCard.type === discardPileCard.type || skipCard.color === activeColor;
+}
+
+/**
+ * Validates if it is valid to play the provided draw card, given the provided discard pile Card and active color.
+ */
+function canPlayDrawCard(drawCard: TypedCard<'DRAW'>, discardPileCard: Card, activeColor: Color): boolean {
+    // Game Rule: DRAW cards are legal to play on top of another card with the same color, or of the same type
+    return drawCard.type === discardPileCard.type || drawCard.color === activeColor;
+}
+
+/**
+ * Validates if it is valid to play the provided reverse card, given the provided discard pile Card and active color.
+ */
+function canPlayReverseCard(reverseCard: TypedCard<'REVERSE'>, discardPileCard: Card, activeColor: Color): boolean {
+    // Game Rule: REVERSE cards are legal to play on top of another card with the same color or type
+    return reverseCard.type === discardPileCard.type || reverseCard.color === activeColor;
 }
 
 /**
@@ -158,34 +210,6 @@ export function onEnd(callback: (event: { winner: number }) => void): void {
 }
 
 /**
- * Returns the direction of play.
- */
-export function playDirection(): 'counterclockwise' | 'clockwise' {
-    //TODO
-}
-
-/**
- * Converts the current Rounds state into a memento object.
- * @returns The converted memento object
- */
-export function toMemento(): RoundMemento_old {
-    //TODO
-}
-
-/**
- * Modifies the state of the Round, allowing for customizing various Round data mid-round. WARNING: Modifying these internal stats might put the Round in an inconsistent state (or be used for cheating!), so use with caution!
- * @param playerHands Modifies the hands of the specified players. Important: The hands must be arranged in the array, such that their index in the array matches the index/playerId for the exact player to replace/modify the hand of.
- * @param drawPile Replaces the draw pile with the one provided.
- * @param discardPile Replaces the discard pile with the one provided.
- * @param currentColor Changes the active Card color to the one specified.
- * @param currentDirection Changes the currently active direction of play to the one specified (clockwise or counterclockwise)
- * @param playerInTurn Marks the player specified by this index/playerId as the one whose turn it currently is, in this round.
- */
-function modifyRoundState(playerHands?: PlayerHand_old[], drawPile?: Deck_old, discardPile?: Deck_old, currentColor?: Color_old, currentDirection?: string, playerInTurn?: number): void {
-    //TODO
-}
-
-/**
  * Validates if the player count is between 2 and 10 players. Returns true if so, otherwise returns false.
  */
 function validPlayerCount(players: string[]): boolean {
@@ -219,28 +243,23 @@ function initializePlayerHands(players: Player[], cardDeck: Card[], cardsPerPlay
         throw new Error(`Not enough cards in Card Deck to initialize player hands.`)
     }
 
-    // TODO: CONTINUE FROM HERE
-    dealFromDeck(cardDeck)
+    return players.reduce(
+        (acc, player) => {
+            const dealt: Card[] = acc.remainingCards.slice(0, cardsPerPlayer)
+            const remaining: Card[] = acc.remainingCards.slice(cardsPerPlayer)
 
-    let dealerDeck: Deck_old = freshCardDeck
-    for (const player of this._players) {
-        dealerDeck = this.initializeHand(dealerDeck, player, cardsPerPlayer)
-
-        //
-        for (let i: number = 0; i < cardsPerPlayer; i++) {
-            const card: Card_old | undefined = dealerDeck.deal()
-
-            if(card !== undefined) {
-                player.hand.addCard(card)
-                continue
+            const updatedPlayer: Player = {
+                ...player,
+                hand: [...player.hand, ...dealt]
             }
 
-
-        }
-        return dealerDeck
-        //
-    }
-    return dealerDeck
+            return {
+                players: [...acc.players, updatedPlayer],
+                remainingCards: remaining
+            }
+        },
+        { players: [] as Player[], remainingCards: cardDeck}
+    )
 }
 
 /**
@@ -269,47 +288,196 @@ function createEmptyRound(players: string[], dealer: number, shuffler: Shuffler<
 function initializeRoundFromEmpty(emptyRound: Round, cardsPerPlayer: number ): Round {
     // Game Rule: Shuffle the deck before dealing:
     const newDeck: Card[] = shuffleCards(createInitialDeck(), emptyRound.shuffler)
+    const { players: initializedPlayers, remainingCards: remainingDeck } = initializePlayerHands(emptyRound.players, newDeck, cardsPerPlayer)
 
+    const { startingCard, remainingDeck: drawPile } = pickStartingCard(remainingDeck, emptyRound.shuffler)
 
+    const roundWithPlayers: Round = {
+        ...emptyRound,
+        players: initializedPlayers
+    }
 
-    // TODO REMOVE THIS OLD CODE
-    // Game Rule: Give the players their cards. Leftover cards go to the Draw Pile:
-    this._drawPileDeck = this.initializePlayerHands(newDeck, cardsPerPlayer)
+    return applyStartingCard(roundWithPlayers, startingCard, drawPile)
+}
 
-    // Game Rule: If the top card of the Discard Pile is a Wild or Wild Draw 4, return it to the Draw Pile and pick another card.
-    let card: Card_old | undefined = this._drawPileDeck.deal()
-    let attempts: number = 0
-    while (card !== undefined && (card.type === 'WILD' || card.type === 'WILD DRAW')){
-        if(++attempts > 500)
+/**
+ * Picks a valid starting card from the provided deck.
+ */
+function pickStartingCard(deck: Card[], shuffler: Shuffler<Card>, maxTries = 50): { startingCard: Card, remainingDeck: Card[]} {
+    const tryPick = (currentDeck: Card[], attemptsLeft: number): { startingCard: Card, remainingDeck: Card[] } => {
+        if ( attemptsLeft <= 0) {
             throw new Error("Initializing Round failed. Could not find a non-wild card for the discard pile")
-        this._drawPileDeck.push(card)
-        this._drawPileDeck.shuffle(shuffler)
+        }
 
-        // Game Rule: Move the top card to the discard pile to finish setting up the game:
-        card = this._drawPileDeck.deal()
+        if(currentDeck.length === 0) {
+            throw new Error("Deck is empty while picking starting card");
+        }
+
+        const [topCard, ...rest] = currentDeck
+
+        // Game Rule: If the top card of the Discard Pile is a Wild or Wild Draw 4, return it to the Draw Pile and pick another card.
+        if(topCard.type === 'WILD' || topCard.type === 'WILD DRAW') {
+            const reshuffledDeck = shuffleCards([topCard, ...rest], shuffler)
+            return tryPick(reshuffledDeck, attemptsLeft - 1)
+        }
+
+        return {
+            startingCard: topCard,
+            remainingDeck: rest
+        }
     }
 
-    if (card !== undefined && 'color' in card) {
-        this._discardPileDeck = new DeckImpl_old([card])
-        this._activeCardColor = card.color
+    return tryPick(deck, maxTries)
+}
+
+function applyStartingCard(round: Round, startingCard: Card, remainingDeck: Card[]): Round {
+    const roundWithoutEffectsApplied: Round = {
+        ...round,
+        drawPile: remainingDeck,
+        discardPile: [startingCard],
+        activeCardColor: "color" in startingCard ? startingCard.color : round.activeCardColor
+    }
+
+    const roundWithEffectsApplied =
+        startingCard.type === "REVERSE" ? reversePlayDirection(roundWithoutEffectsApplied) :
+            startingCard.type === "SKIP"    ? setSkipNextPlayerFlag(roundWithoutEffectsApplied) :
+                startingCard.type === "DRAW"    ? setDrawTwoCardsFlag(roundWithoutEffectsApplied) :
+                    roundWithoutEffectsApplied
+
+    return advanceToNextPlayer(roundWithEffectsApplied)
+}
+
+/**
+ * Returns the provided Round with the play direction reversed.
+ */
+const reversePlayDirection = (round: Round): Round => ({
+    ...round,
+    playPassDirection: round.playPassDirection === "clockwise" ? "counterclockwise" : "clockwise"
+})
+
+/**
+ * Returns the specified Round with the "skipNextPlayer" flag set to true.
+ */
+const setSkipNextPlayerFlag = (round: Round): Round => ({
+    ...round,
+    skipNextPlayer: true
+})
+
+/**
+ * Returns the specified Round with the flag indicating that the next player must draw two cards and forfeit their turn, set.
+ */
+const setDrawTwoCardsFlag = (round: Round): Round => ({
+    ...round,
+    noOfCardsPlayerMustDraw: 2,
+    skipNextPlayer: true
+})
+
+/**
+ * Returns a Round where the turn has been moved to the next player in the play direction.
+ */
+function advanceToNextPlayer(round: Round): Round {
+    // Identify the next player, depending on play direction
+    const nextPlayer: Player = round.playPassDirection === 'counterclockwise' ?
+        round.players[(round.activePlayer.playerId + round.players.length - 1) % round.players.length] :
+        round.players[(round.activePlayer.playerId + round.players.length + 1) % round.players.length]
+
+    // Evaluate if the last player, played a card that skips or forfeits this players turn
+    if (round.skipNextPlayer) {
+        if (round.noOfCardsPlayerMustDraw > 1) {
+            // Game Rule: Skipped player must draw cards, if last player played a DRAW 2 or WILD DRAW 4 card
+            return advanceToNextPlayer({
+                    ...drawCards(nextPlayer.playerId, round.noOfCardsPlayerMustDraw, round),
+                    activePlayer: nextPlayer,
+                    skipNextPlayer: false
+                }
+            )
+        }
+
+        return advanceToNextPlayer({
+            ...round,
+            activePlayer: nextPlayer,
+            skipNextPlayer: false
+        })
     } else {
-        throw new Error("Unable to deal card from draw pile. Round can not begin")
+        return {
+            ...round,
+            activePlayer: {...nextPlayer, hasDrawnCardInTurn: false}
+        }
+    }
+}
+
+/**
+ * Draws a number of cards from the draw pile on the specified Round. Returns a Round type with the updates piles and player hands.
+ */
+function drawCards(playerIdForDrawingPlayer: number, numberOfCardsToDraw: number, round: Round): Round {
+    if(numberOfCardsToDraw <= 0) {
+        return round
     }
 
-    // Apply any effects of the initial discard card:
-    switch (card.type) {
-        case 'REVERSE':
-            this.togglePlayDirection()
-            break
-
-        case 'SKIP':
-            this._skipNextPlayer = true
-            break
-
-        case 'DRAW':
-            this._noOfCardsPlayerMustDraw = 2
-            this._skipNextPlayer = true
-            break
+    if(playerIdForDrawingPlayer < 0 || playerIdForDrawingPlayer >= round.players.length) {
+        throw new Error(`PlayerId must be between 0 and number of players in the round ${round.players.length}`)
     }
-    this.nextPlayer()
+
+    if(round.drawPile.length + round.discardPile.length < numberOfCardsToDraw) {
+        throw new Error(`Cannot draw ${numberOfCardsToDraw} cards. Only ${round.drawPile.length + round.discardPile.length} cards are in play`)
+    }
+
+    // Game Rule: Reshuffle discard pile into draw pile, if there is not enough cards in Draw pile to draw from.
+    // For ease of implementation, I'll just always reshuffle whenever a draw is made. Players can't see the difference, anyways.
+    const reshuffledRound: Round = redistributeDiscardPile(round)
+
+    const drawnCards: Card[] = reshuffledRound.drawPile.slice(0, numberOfCardsToDraw)
+    const remainingCards: Card[] = reshuffledRound.drawPile.slice(numberOfCardsToDraw)
+
+    // Game Rule: If drawn card was not playable, advance to next player.
+    if(drawnCards.length === 1 && !canPlayCard(drawnCards[0],
+            reshuffledRound.players[playerIdForDrawingPlayer].hand,
+            reshuffledRound.discardPile[0],
+            reshuffledRound.activeCardColor)) {
+
+        return advanceToNextPlayer({
+            ...reshuffledRound,
+            noOfCardsPlayerMustDraw: 1,
+
+            // Update the players in the returned Round
+            players: reshuffledRound.players.map((player: Player): Player => player.playerId !== playerIdForDrawingPlayer ? player : {
+                ...player,
+                hand: [...player.hand, ...drawnCards],
+                hasSaidUno: false // Resets 'UNO' declaration for this player, whenever new cards are drawn.
+            }),
+
+            // Update draw pile
+            drawPile: remainingCards
+        })
+    }
+
+    //Game Rule: Player must immediately play a drawn card, if that card can legally be played:
+    return {
+        ...reshuffledRound,
+        noOfCardsPlayerMustDraw: 1,
+
+        // Update the players in the returned Round
+        players: reshuffledRound.players.map((player: Player): Player => player.playerId !== playerIdForDrawingPlayer ? player : {
+            ...player,
+            hand: [...player.hand, ...drawnCards],
+            hasSaidUno: false, // Resets 'UNO' declaration for this player, whenever new cards are drawn.
+            hasDrawnCardInTurn: true, // Marks this player as having drawn a card, and that last drawn card is playable immediately!
+        }),
+
+        // Update draw pile
+        drawPile: remainingCards
+    }
+}
+
+/**
+ * Moves all cards, except the top-most, from the discard pile into the draw pile and shuffles the draw pile. Returns the updated Round.
+ */
+function redistributeDiscardPile(round: Round): Round {
+    const topCard: Card = round.discardPile.at(-1)!;
+
+    return {
+        ...round,
+        drawPile: shuffleCards([...round.discardPile.filter(card => card !== topCard), ...round.drawPile], round.shuffler),
+        discardPile: [topCard]
+    }
 }

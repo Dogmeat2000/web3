@@ -19,7 +19,7 @@ describe("Round set up", () => {
     expect(round.players.length).toBe(4)
   })
   it("has the players set in the properties", () => {
-    expect(round.players).toEqual(['a', 'b', 'c', 'd'])
+    expect(round.players.map(player => player.playerName)).toEqual(['a', 'b', 'c', 'd'])
   })
   it("requires at least 2 players", () => {
     expect(() => createRound({players: ['a'], dealer: 1})).toThrow()
@@ -28,7 +28,7 @@ describe("Round set up", () => {
     expect(() => createRound({players: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11'], dealer: 1})).toThrow()
   })
   it("selects dealer set in the properties", () => {
-    expect(round.dealer).toBe(1)
+    expect(round.dealer.playerId).toBe(1)
   })
   it("shuffles the deck", () => {
     const mockShuffler = jest.fn(noShuffle)
@@ -81,26 +81,26 @@ describe("Round set up", () => {
 describe("Before first action in round", () => {
   it("begins with the player to the left of the dealer unless the top card is draw, reverse or skip", () => {
     const round: Round = createRound({players: ['a', 'b', 'c', 'd'], dealer: 1, shuffler: normalShuffle})
-    expect(round.activePlayer).toBe(2)
+    expect(round.activePlayer.playerId).toBe(2)
   })
   it("rolls over if the dealer is the last player", () => {
     const round: Round = createRound({players: ['a', 'b', 'c', 'd'], dealer: 3, shuffler: normalShuffle})
-    expect(round.activePlayer).toBe(0)
+    expect(round.activePlayer.playerId).toBe(0)
   })
   it("begins with the player to the right of the dealer if the top card is reverse", () => {
     const shuffler = shuffleBuilder().discard().is({type: 'REVERSE'}).build()
     const round: Round = createRound({players: ['a', 'b', 'c', 'd'], dealer: 1, shuffler})
-    expect(round.activePlayer).toBe(0)
+    expect(round.activePlayer.playerId).toBe(0)
   })
   it("rolls over if dealer is the first player and the top card is reverse", () => {
     const shuffler = shuffleBuilder().discard().is({type: 'REVERSE'}).build()
     const round: Round = createRound({players: ['a', 'b', 'c', 'd'], dealer: 0, shuffler})
-    expect(round.activePlayer).toBe(3)
+    expect(round.activePlayer.playerId).toBe(3)
   })
   it("begins with the player two places to the left of the dealer if the top card is skip", () => {
     const shuffler = shuffleBuilder().discard().is({type: 'SKIP'}).build()
     const round: Round = createRound({players: ['a', 'b', 'c', 'd'], dealer: 1, shuffler})
-    expect(round.activePlayer).toBe(3)
+    expect(round.activePlayer.playerId).toBe(3)
   })
   it("adds 2 cards to the hand of the first player if the top card is draw", () => {
     const shuffler = shuffleBuilder().discard().is({type: 'DRAW'}).build()
