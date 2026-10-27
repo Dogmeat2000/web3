@@ -56,15 +56,58 @@ export function getPlayerObj(round: Round, playerId: number): Player | undefined
  * Plays the card with the provided index position on the active players hand. If the player names a color, this is also applied - which is primarily used for the WILD cards.
  * @param cardIndex Index position of the card to play from the current players hand (array of cards)
  * @param namedColor Optional: The color the player is naming. Is required for WILD cards. Results in an error if provided with non-wild cards.
- * @returns The card that was played.
+ * @param round The Round to play
+ * @returns A Round type containing the updated Round after playing the specified Card.
  */
-export function play(cardIndex: number, namedColor?: Color): Card {
-    // TODO
+export function play(cardIndex: number, round: Round, namedColor?: Color): Round {
+    // Game Rule: Cannot play if round has already ended
+    if(hasEnded(round)) {
+        throw new Error(`Cannot play. Round has already ended. Winner is: ${checkForWinner(round)}`)
+    }
+
+    // Game Rule: Player cannot name a color, when playing a colored card
+    if('color' in round.players[round.activePlayer.playerId].hand[cardIndex]) {
+        if(namedColor !== undefined) {
+            throw new Error(`Can't play. It is illegal to name color on a colored card.`)
+        }
+    }
+
+    if(canPlay(cardIndex, round)) {
+        const roundWithAppliedCardEffects: Round = applyPlayedCardEffects(cardIndex, round, namedColor);
+        const playedCard: Card = roundWithAppliedCardEffects.players[roundWithAppliedCardEffects.activePlayer.playerId].hand[cardIndex]
+
+        // Game Rule: Turn moves to the next player after playing the card
+        return advanceToNextPlayer({
+            ...roundWithAppliedCardEffects,
+            discardPile: [...roundWithAppliedCardEffects.discardPile, playedCard], // Game Rule: Place card on top of Discard pile'
+            activePlayer: {
+                ...roundWithAppliedCardEffects.activePlayer,
+                hand: roundWithAppliedCardEffects.activePlayer.hand.filter(card => card === playedCard), // Game Rule: Remove card from hand
+            },
+            players: roundWithAppliedCardEffects.players.map(player => player.playerId === roundWithAppliedCardEffects.activePlayer.playerId ?
+                { ...player, hand: player.hand.filter(card => card === playedCard)} : player) // Game Rule: Remove card from hand
+        })
+    } else {
+        throw new Error("Can't play card")
+    }
+
+    //TODO: How about evaluating if the Round ended with this turn?
+    // Old Code
+    // Game Logic: Evaluate if round ended here, with a winner:
+    /*const winner = this.winner()
+    if( winner !== undefined) {
+        this.endRound(winner)
+    }*/
 }
 
-// TODO
-export function canPlay() {
-    // TODO
+/**
+ * Checks that the card with the provided index on the active players hand in the provided round, can be played.
+ */
+export function canPlay(cardIndex: number, round: Round): boolean {
+    if(cardIndex < 0 || cardIndex >= round.players.length) {
+        return false
+    }
+    return canPlayCard(round.players[round.activePlayer.playerId].hand[cardIndex], round.players[round.activePlayer.playerId].hand, round.discardPile.at(-1)!, round.activeCardColor)
 }
 
 /**
@@ -93,6 +136,84 @@ function canPlayCard(cardToPlay: Card, playerHand: Card[], topCardFromDiscardPil
 
         case 'WILD DRAW':
             return canPlayWildDrawCard(playerHand, activeColor)
+
+        default:
+            throw new Error("Unexpected error. Invalid card. Cannot play.")
+    }
+}
+
+/**
+ * Plays the card at the specified index on the active players hand, applying the effect of the card. Returns the updated Round.
+ * This function DOES NOT remove a played card from a players hand, or place it on the discard pile.
+ */
+function applyPlayedCardEffects(cardIndex: number, round: Round, namedColor?: Color): Round {
+    if(!canPlay(cardIndex, round)) {
+        throw new Error(`Cannot play card ${round.players[round.activePlayer.playerId].hand[cardIndex]}.`)
+    }
+
+    const playedCard: Card = round.players[round.activePlayer.playerId].hand[cardIndex]
+
+    switch(playedCard.type){
+        case 'NUMBERED':
+            return {
+                ...round,
+                activeCardColor: playedCard.color // Game Rule: Played cards color determines which color next cards must have
+            }
+
+        case 'REVERSE':
+            // Game Rule: Reverses the direction of play, when more than 2 players:
+            if(round.players.length > 2) {
+                return reversePlayDirection({
+                    ...round,
+                    activeCardColor: playedCard.color
+                })
+            } else {
+                // Game Rule: Skip the next player, if there are only 2 players.
+                return {
+                    ...round,
+                    activeCardColor: playedCard.color
+                }
+            }
+
+        case 'SKIP':
+            return {
+                ...round,
+                skipNextPlayer: true, // Game Rule: Skips the next player
+                activeCardColor: playedCard.color // Game Rule: Played cards color determines which color next cards must have
+            }
+
+        case 'DRAW':
+            return {
+                ...round,
+                noOfCardsPlayerMustDraw: 2, // Game Rule: Next player must draw +2 cards and forfeit their turn
+                skipNextPlayer: true,
+                activeCardColor: playedCard.color // Game Rule: Played cards color determines which color next cards must have
+            }
+
+        case 'WILD':
+            if(namedColor === undefined) {
+                throw new Error("Cannot play a WILD card without naming a color")
+            } else {
+                return {
+                    ...round,
+                    activeCardColor: namedColor // Game Rule: Named color determines which color next cards must have
+                }
+            }
+
+        case 'WILD DRAW':
+            if(namedColor === undefined) {
+                throw new Error("Cannot play a WILD DRAW 4 card without naming a color")
+            } else {
+                return {
+                    ...round,
+                    activeCardColor: namedColor, // Game Rule: Named color determines which color next cards must have:
+                    noOfCardsPlayerMustDraw: 4, // Game Rule: If playing a WILD DRAW 4 card, the next player must draw +4 cards from the pile and forfeit his/her turn.
+                    skipNextPlayer: true
+                }
+            }
+
+        default:
+            throw new Error(`Cannot play card ${playedCard}.`)
     }
 }
 
@@ -111,10 +232,10 @@ function canPlayWildDrawCard(playerHand: Card[], activeColor: Color): boolean {
     // Game Rule: WILD DRAW 4 card can be played only if the player doesn't hold any cards that match the color of the card previously played
     for(const card of playerHand) {
         if('color' in card && card.color === activeColor) {
-            return true
+            return false
         }
     }
-    return false
+    return true
 }
 
 /**
@@ -152,8 +273,13 @@ function canPlayReverseCard(reverseCard: TypedCard<'REVERSE'>, discardPileCard: 
 /**
  * @return True if any card on the currently active players hand can be played. Otherwise, returns False.
  */
-export function canPlayAny(): boolean {
-    //TODO
+export function canPlayAny(round: Round): boolean {
+    for (let i = 0; i < round.players[round.activePlayer.playerId].hand.length; i++) {
+        if(canPlay(i, round)) {
+            return true
+        }
+    }
+    return false;
 }
 
 /**
@@ -182,17 +308,23 @@ export function catchUnoFailure(players: { accuser: number, accused: number }): 
 }
 
 /**
- * @returns True if this round has ended. This is determined by the presence, or absence of a winner.
+ * @returns True if the specified round has ended. This is determined by the presence, or absence of a winner.
  */
-export function hasEnded(): boolean {
-    //TODO
+export function hasEnded(round: Round): boolean {
+    return checkForWinner(round) !== undefined;
 }
 
 /**
- * @returns The winning player's id in this round, if any. Otherwise, undefined.
+ * @returns The winning playerin this round, if any. Otherwise, undefined.
  */
-export function winner(): number | undefined {
-    //TODO
+export function checkForWinner(round: Round): Player | undefined {
+    const winningPlayer: Player[] = round.players.filter(player => player.hand.length === 0)
+
+    if(winningPlayer.length === 1){
+        return winningPlayer[0]
+    } else {
+        return undefined
+    }
 }
 
 /**
@@ -423,8 +555,7 @@ function drawCards(playerIdForDrawingPlayer: number, numberOfCardsToDraw: number
     }
 
     // Game Rule: Reshuffle discard pile into draw pile, if there is not enough cards in Draw pile to draw from.
-    // For ease of implementation, I'll just always reshuffle whenever a draw is made. Players can't see the difference, anyways.
-    const reshuffledRound: Round = redistributeDiscardPile(round)
+    const reshuffledRound: Round = round.drawPile.length < numberOfCardsToDraw ? redistributeDiscardPile(round) : round
 
     const drawnCards: Card[] = reshuffledRound.drawPile.slice(0, numberOfCardsToDraw)
     const remainingCards: Card[] = reshuffledRound.drawPile.slice(numberOfCardsToDraw)
