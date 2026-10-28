@@ -10,7 +10,7 @@ export type Round = {
     readonly discardPile: Card[],
     readonly shuffler: Shuffler<Card>,
     readonly activeCardColor: Color,
-    readonly activePlayer: Player,
+    readonly activePlayer?: Player,
     readonly playPassDirection: 'counterclockwise' | 'clockwise',
     readonly noOfCardsPlayerMustDraw: number,
     readonly skipNextPlayer: boolean,
@@ -63,7 +63,7 @@ export function play(cardIndex: number, round: Round, namedColor?: Color): Round
     }
 
     // Game Rule: Player cannot name a color, when playing a colored card
-    if('color' in round.players[round.activePlayer.playerId].hand[cardIndex]) {
+    if('color' in round.players[round.activePlayer!.playerId].hand[cardIndex]) {
         if(namedColor !== undefined) {
             throw new Error(`Can't play. It is illegal to name color on a colored card.`)
         }
@@ -71,30 +71,28 @@ export function play(cardIndex: number, round: Round, namedColor?: Color): Round
 
     if(canPlay(cardIndex, round)) {
         const roundWithAppliedCardEffects: Round = applyPlayedCardEffects(cardIndex, round, namedColor);
-        const playedCard: Card = roundWithAppliedCardEffects.players[roundWithAppliedCardEffects.activePlayer.playerId].hand[cardIndex]
+        const playedCard: Card = roundWithAppliedCardEffects.players[roundWithAppliedCardEffects.activePlayer!.playerId].hand[cardIndex]
+
+
+        const playedRound: Round = {
+            ...roundWithAppliedCardEffects,
+            discardPile: [...roundWithAppliedCardEffects.discardPile, playedCard], // Game Rule: Place card on top of Discard pile
+            activePlayer: {
+                ...roundWithAppliedCardEffects.activePlayer!,
+                hand: roundWithAppliedCardEffects.activePlayer!.hand.filter(card => card !== playedCard), // Game Rule: Remove card from hand
+            },
+            players: roundWithAppliedCardEffects.players.map(player => player.playerId === roundWithAppliedCardEffects.activePlayer!.playerId ?
+                { ...player, hand: player.hand.filter(card => card !== playedCard)} : player) // Game Rule: Remove card from hand
+        }
 
         // Game Rule: Turn moves to the next player after playing the card
-        return advanceToNextPlayer({
-            ...roundWithAppliedCardEffects,
-            discardPile: [...roundWithAppliedCardEffects.discardPile, playedCard], // Game Rule: Place card on top of Discard pile'
-            activePlayer: {
-                ...roundWithAppliedCardEffects.activePlayer,
-                hand: roundWithAppliedCardEffects.activePlayer.hand.filter(card => card !== playedCard), // Game Rule: Remove card from hand
-            },
-            players: roundWithAppliedCardEffects.players.map(player => player.playerId === roundWithAppliedCardEffects.activePlayer.playerId ?
-                { ...player, hand: player.hand.filter(card => card !== playedCard)} : player) // Game Rule: Remove card from hand
-        })
+        const nextRound: Round = advanceToNextPlayer(playedRound)
+
+        // Game Rule: The round ends if the player has played their last card.
+        return hasEnded(nextRound) ? { ...nextRound, activePlayer: undefined } : nextRound
     } else {
         throw new Error("Can't play card")
     }
-
-    //TODO: How about evaluating if the Round ended with this turn?
-    // Old Code
-    // Game Logic: Evaluate if round ended here, with a winner:
-    /*const winner = this.winner()
-    if( winner !== undefined) {
-        this.endRound(winner)
-    }*/
 }
 
 /**
@@ -111,7 +109,7 @@ export function canPlay(cardIndex: number, round: Round): boolean {
     if(cardIndex < 0 || cardIndex >= round.players.length || hasEnded(round)) {
         return false
     }
-    return canPlayCard(round.players[round.activePlayer.playerId].hand[cardIndex], round.players[round.activePlayer.playerId].hand, topOfDiscard(round), round.activeCardColor)
+    return canPlayCard(round.players[round.activePlayer!.playerId].hand[cardIndex], round.players[round.activePlayer!.playerId].hand, topOfDiscard(round), round.activeCardColor)
 }
 
 /**
@@ -152,10 +150,10 @@ function canPlayCard(cardToPlay: Card, playerHand: Card[], topCardFromDiscardPil
  */
 function applyPlayedCardEffects(cardIndex: number, round: Round, namedColor?: Color): Round {
     if(!canPlay(cardIndex, round)) {
-        throw new Error(`Cannot play card ${round.players[round.activePlayer.playerId].hand[cardIndex]}.`)
+        throw new Error(`Cannot play card ${round.players[round.activePlayer!.playerId].hand[cardIndex]}.`)
     }
 
-    const playedCard: Card = round.players[round.activePlayer.playerId].hand[cardIndex]
+    const playedCard: Card = round.players[round.activePlayer!.playerId].hand[cardIndex]
 
     switch(playedCard.type){
         case 'NUMBERED':
@@ -279,7 +277,11 @@ function canPlayReverseCard(reverseCard: TypedCard<'REVERSE'>, discardPileCard: 
  * @return True if any card on the currently active players hand can be played. Otherwise, returns False.
  */
 export function canPlayAny(round: Round): boolean {
-    for (let i = 0; i < round.players[round.activePlayer.playerId].hand.length; i++) {
+    if(hasEnded(round)) {
+        return false
+    }
+
+    for (let i = 0; i < round.players[round.activePlayer!.playerId].hand.length; i++) {
         if(canPlay(i, round)) {
             return true
         }
@@ -299,15 +301,15 @@ export function draw(round: Round): Round {
     }
 
     // Game Rule: Cannot draw cards, if player already drew cards in this turn:
-    if(round.activePlayer.hasDrawnCardInTurn) {
-        throw new Error(`Cannot draw. Player has already drawn cards in this turn. Current payer is: ${round.activePlayer.playerName}`)
+    if(round.activePlayer!.hasDrawnCardInTurn) {
+        throw new Error(`Cannot draw. Player has already drawn cards in this turn. Current payer is: ${round.activePlayer!.playerName}`)
     }
 
     // Game Rule: Players must play any playable cards. Draws can only be made if no playable card is on hand, or a special card forced the draw.
     if(round.noOfCardsPlayerMustDraw === 1 && canPlayAny(round)) {
         throw new Error("Cannot draw while holding a playable card")
     }
-    return drawCards(round.activePlayer.playerId, round.noOfCardsPlayerMustDraw, round)
+    return drawCards(round.activePlayer!.playerId, round.noOfCardsPlayerMustDraw, round)
 }
 
 /**
@@ -333,15 +335,15 @@ export function sayUno(playerId: number, round: Round): Round {
     // Game Rule: Cannot say 'UNO' if next player has drawn cards, or has played his/her card:
     const step = round.playPassDirection === 'counterclockwise' ? -1 : 1
     const nextAfterPlayer: number = (playerId + step + round.players.length) % round.players.length
-    const isOwnTurn: boolean = round.activePlayer.playerId === playerId
-    const isNextInTurn: boolean = round.activePlayer.playerId === nextAfterPlayer
+    const isOwnTurn: boolean = round.activePlayer!.playerId === playerId
+    const isNextInTurn: boolean = round.activePlayer!.playerId === nextAfterPlayer
 
-    if(isOwnTurn && isNextInTurn){
+    if(!isOwnTurn && !isNextInTurn){
         // Game Rule: Saying Uno outside of your turn, does nothing.
         return round
     }
 
-    if(isNextInTurn && round.players[round.activePlayer.playerId].hasDrawnCardInTurn) {
+    if(isNextInTurn && round.players[round.activePlayer!.playerId].hasDrawnCardInTurn) {
         throw new Error(`Cannot say UNO. Next player has already drawn or played a card`)
     }
 
@@ -393,14 +395,14 @@ export function checkUnoFailure(players: { accuser: number, accused: number }, r
     // Game Rule: If next player has already played, a player cannot be caught for forgetting to say 'UNO'.
     const step = round.playPassDirection === 'counterclockwise' ? -1 : 1
     const nextAfterPlayer: number = (players.accused + step + round.players.length) % round.players.length
-    const isNextInTurn: boolean = round.activePlayer.playerId === nextAfterPlayer
+    const isNextInTurn: boolean = round.activePlayer!.playerId === nextAfterPlayer
 
     if(!isNextInTurn) {
         return false
     }
 
     // Game Rule: If next player has already drawn, the previous player can no longer be caught.
-    if(round.players[round.activePlayer.playerId].hasDrawnCardInTurn) {
+    if(round.players[round.activePlayer!.playerId].hasDrawnCardInTurn) {
         return false
     }
 
@@ -632,8 +634,8 @@ const setDrawTwoCardsFlag = (round: Round): Round => ({
 function advanceToNextPlayer(round: Round): Round {
     // Identify the next player, depending on play direction
     const nextPlayer: Player = round.playPassDirection === 'counterclockwise' ?
-        round.players[(round.activePlayer.playerId + round.players.length - 1) % round.players.length] :
-        round.players[(round.activePlayer.playerId + round.players.length + 1) % round.players.length]
+        round.players[(round.activePlayer!.playerId + round.players.length - 1) % round.players.length] :
+        round.players[(round.activePlayer!.playerId + round.players.length + 1) % round.players.length]
 
     // Evaluate if the last player, played a card that skips or forfeits this players turn
     if (round.skipNextPlayer) {
