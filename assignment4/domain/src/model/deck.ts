@@ -48,84 +48,10 @@ type WildDrawCard = {
 
 // Pure Functions
 /**
- * Checks if the provided value is a Color. Returns true if so. Otherwise, returns false.
- */
-export function isColor(value: unknown): value is Color {
-    return typeof value === 'string' && (VALID_COLORS as readonly string[]).includes(value);
-}
-
-/**
- * Checks if the provided value is a valid Card Number. Returns true if so. Otherwise, returns false.
- */
-export function isNumber(value: unknown): value is CardNumber {
-    return typeof value === 'number' && (VALID_CARD_NUMBERS as readonly number[]).includes(value);
-}
-
-/**
- * Checks if the provided card has the specified number.
- * @param card The card to check
- * @param number The number to check for on this card
- * @returns True the card has the provided number. Otherwise, False.
- */
-export function hasNumber(card: Card, number: TypedCard<'NUMBERED'>['number']): boolean {
-    if(card.type  === 'NUMBERED')
-        return card.number === number;
-
-    return false
-}
-
-/**
- * Checks if the provided card has the specified color.
- * @param card The card to check
- * @param color The color to check for on this card
- * @returns True the card has the provided number. Otherwise, False.
- */
-export function hasColor(card: Card, color: Color): boolean {
-    if(card.type  === 'NUMBERED' || card.type === 'DRAW' || card.type === 'REVERSE' || card.type === 'SKIP')
-        return card.color === color;
-
-    return false
-}
-
-/**
- * Deals the first element of the Deck, returning the dealt card as well as the Deck with the dealt card removed.
- */
-export function dealFromDeck(cards: Card[]): { dealtCard: Card, dealtDeck: Card[] } | undefined {
-    if(cards.length > 0) {
-        return { dealtCard: cards[0], dealtDeck: cards.slice(1)}
-    }
-    return undefined
-}
-
-/**
  * Shuffles the cards in a Deck using the provided shuffler, returning the shuffled deck.
  */
 export function shuffleCards(cards: Card[], shuffler: Shuffler<Card>): Card[] {
     return shuffler(cards)
-}
-
-
-/**
- * Filters based on the provided predicate and returns a new Card array containing only the filtered cards.
- * @returns The filtered Cards
- */
-export function filterCards(cards: Card[], pred: (card: Card) => boolean): Card[] {
-    return [...cards.filter(pred)]
-}
-
-/**
- * @returns The top-most Card in the card Array (Deck), or undefined if collection has no cards.
- */
-export function topCard(cards: Card[]): Card | undefined {
-    return cards.at(-1);
-}
-
-/**
- * Adds a Card to the end (top) of the Card (Deck) stack.
- * Returns an array with the card added.
- */
-export function pushCard(cards: Card[], newCard: Card): Card[] {
-    return [...cards, newCard]
 }
 
 /**

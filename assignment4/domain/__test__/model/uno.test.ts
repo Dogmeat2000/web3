@@ -2,21 +2,21 @@ import { describe, it, test, expect } from '@jest/globals'
 import { createGame } from '../utils/test_adapter'
 import { shuffleBuilder, successiveShufflers } from '../utils/shuffling'
 import { Game, play } from '../../src/model/uno'
-import * as Round from '../../src/model/round_old'
+import * as Round from '../../src/model/round'
 import * as _ from 'lodash'
 
 describe("Game set up", () => {
   const game: Game = createGame({players: ['a', 'b', 'c', 'd'], targetScore: 200})
   it("has as many players as set in the properties", () => {
-    expect(game.playerCount).toEqual(4)
+    expect(game.playerNames.length).toEqual(4)
   })
   it("has the players set in the properties", () => {
-    expect(game.players).toEqual(['a', 'b', 'c', 'd'])
+    expect(game.playerNames).toEqual(['a', 'b', 'c', 'd'])
   })
   it("has 'A' and 'B' as the default players", () => {
     const game: Game = createGame({})
-    expect(game.playerCount).toEqual(2)
-    expect(game.players).toEqual(['A', 'B'])
+    expect(game.playerNames.length).toEqual(2)
+    expect(game.playerNames).toEqual(['A', 'B'])
   })
   it("has the target score set in the properties", () => {
     expect(game.targetScore).toEqual(200)
@@ -42,7 +42,7 @@ describe("Game set up", () => {
   })
   it("selects a random player as dealer", () => {
     const game: Game = createGame({players: ['a', 'b', 'c', 'd'], randomizer: () => 1})
-    expect(game.currentRound?.dealer).toEqual(1)
+    expect(game.currentRound?.dealer.playerId).toEqual(1)
   })
 })
 
@@ -78,7 +78,7 @@ describe("Playing a round", () => {
     })
   })
   describe("when the round is over", () => {
-    const game = play(_.flow([Round.draw, _.partial(Round.play, 0, undefined)]), startGame)
+    const game = play(_.flow([Round.draw, (round: Round.Round) => Round.play(0, round)]), startGame)
     test("the game still has no winner", () => {
       expect(game.winner).toBeUndefined()
     })
@@ -109,8 +109,8 @@ describe("ending the second round", () => {
     cardsPerPlayer: 1
   }
   const startGame = createGame(props)
-  const game1 = play(_.flow([Round.draw, _.partial(Round.play, 0, undefined)]), startGame)
-  const game2 = play(_.flow([Round.draw, _.partial(Round.play, 0, undefined)]), game1)
+  const game1 = play(_.flow([Round.draw, (round: Round.Round) => Round.play(0, round)]), startGame)
+  const game2 = play(_.flow([Round.draw, (round: Round.Round) => Round.play(0, round)]), game1)
 
   test("the game still has no winner", () => {
     expect(game2.winner).toBeUndefined()
@@ -141,12 +141,12 @@ describe("ending the third round", () => {
     cardsPerPlayer: 1
   }
   const startGame = createGame(props)
-  const game1 = play(_.flow([Round.draw, _.partial(Round.play, 0, undefined)]), startGame)
-  const game2 = play(_.flow([Round.draw, _.partial(Round.play, 0, undefined)]), game1)
-  const game3 = play(_.partial(Round.play, 0, undefined), game2)
+  const game1 = play(_.flow([Round.draw, (round: Round.Round) => Round.play(0, round)]), startGame)
+  const game2 = play(_.flow([Round.draw, (round: Round.Round) => Round.play(0, round)]), game1)
+  const game3 = play((round: Round.Round) => Round.play(0, round), game2)
 
   test("player 0 won", () => {
-    expect(game3.winner).toEqual(2)
+    expect(game3.winner?.playerId).toEqual(2)
   })
   test("the score is updated", () => {
     expect(game3.scores).toEqual([ 0, 78, 216, 0 ])

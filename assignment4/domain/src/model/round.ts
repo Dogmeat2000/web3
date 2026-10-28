@@ -31,15 +31,6 @@ export function createRound(players: string[], dealer: number, shuffler: Shuffle
 }
 
 /**
- * @param round Round to search for the player in.
- * @param playerId The id of player to return.
- * @returns The name of the player with the provided id, or undefined if no player match is found.
- */
-export function getPlayerName(round: Round, playerId: number): string | undefined {
-    return getPlayerObj(round, playerId)?.playerName
-}
-
-/**
  * Returns the player object containing information about this player, from within the specified Round.
  */
 export function getPlayerObj(round: Round, playerId: number): Player | undefined {
@@ -459,13 +450,6 @@ export function score(round: Round): number | undefined {
 }
 
 /**
- * Callback function that publishes and event containing the winner, when the round ends.
- */
-export function onEnd(callback: (event: { winner: number }) => void): void {
-    //TODO
-}
-
-/**
  * Validates if the player count is between 2 and 10 players. Returns true if so, otherwise returns false.
  */
 function validPlayerCount(players: string[]): boolean {
@@ -494,28 +478,21 @@ function initializePlayers(players: string[]): Player[] {
  * Initializes each Player's hand for the players provided, taking cards from the provided fresh card Deck.
  * Returns the initialized Players with their hands and an array of cards that were not distributed to players.
  */
-function initializePlayerHands(players: Player[], cardDeck: Card[], cardsPerPlayer: number): { players: Player[], remainingCards: Card[] } {
+function initializePlayerHands(players: Player[], dealer: number, cardDeck: Card[], cardsPerPlayer: number): { players: Player[], remainingCards: Card[] } {
     if(players.length * cardsPerPlayer > cardDeck.length){
         throw new Error(`Not enough cards in Card Deck to initialize player hands.`)
     }
 
-    return players.reduce(
-        (acc, player) => {
-            const dealt: Card[] = acc.remainingCards.slice(0, cardsPerPlayer)
-            const remaining: Card[] = acc.remainingCards.slice(cardsPerPlayer)
-
-            const updatedPlayer: Player = {
-                ...player,
-                hand: [...player.hand, ...dealt]
-            }
-
+    return {
+        players: players.map((player: Player): Player => {
+            const dealingPosition: number = (player.playerId - dealer - 1 + players.length) % players.length
             return {
-                players: [...acc.players, updatedPlayer],
-                remainingCards: remaining
+                ...player,
+                hand: cardDeck.slice(dealingPosition * cardsPerPlayer, (dealingPosition + 1) * cardsPerPlayer)
             }
-        },
-        { players: [] as Player[], remainingCards: cardDeck}
-    )
+        }),
+        remainingCards: cardDeck.slice(players.length * cardsPerPlayer)
+    }
 }
 
 /**
@@ -544,7 +521,7 @@ function createEmptyRound(players: string[], dealer: number, shuffler: Shuffler<
 function initializeRoundFromEmpty(emptyRound: Round, cardsPerPlayer: number ): Round {
     // Game Rule: Shuffle the deck before dealing:
     const newDeck: Card[] = shuffleCards(createInitialDeck(), emptyRound.shuffler)
-    const { players: initializedPlayers, remainingCards: remainingDeck } = initializePlayerHands(emptyRound.players, newDeck, cardsPerPlayer)
+    const { players: initializedPlayers, remainingCards: remainingDeck } = initializePlayerHands(emptyRound.players, emptyRound.dealer.playerId, newDeck, cardsPerPlayer)
 
     const { startingCard, remainingDeck: drawPile } = pickStartingCard(remainingDeck, emptyRound.shuffler)
 
