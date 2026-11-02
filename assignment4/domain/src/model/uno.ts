@@ -4,14 +4,14 @@ import { Card } from "./deck";
 import {Player} from "./player";
 
 export type Game = {
-    playerNames: string[],
-    currentRound: Round | undefined,
-    targetScore: number,
-    scores: number[],
-    cardsPerPlayer: number,
-    randomizer: Randomizer,
-    shuffler: Shuffler<Card>,
-    winner?: Player
+    readonly playerNames: readonly string[],
+    readonly currentRound: Round | undefined,
+    readonly targetScore: number,
+    readonly scores: readonly number[],
+    readonly cardsPerPlayer: number,
+    readonly randomizer: Randomizer,
+    readonly shuffler: Shuffler<Card>,
+    readonly winner?: Player
 }
 
 /**
@@ -49,6 +49,11 @@ export function createGame(players: string[] = ['A', 'B'],
 }
 
 export function play(move: (round: Round) => Round, game: Game): Game {
+    // Game Rule: No moves can be made after the game has ended.
+    if(game.currentRound === undefined) {
+        throw new Error(`Cannot play. Game has already ended. Winner is: ${game.winner?.playerName}`)
+    }
+
     const round: Round = move(game.currentRound!)
 
     if(!hasEnded(round)){
@@ -64,7 +69,7 @@ export function play(move: (round: Round) => Round, game: Game): Game {
 
     // Game Rule: The game ends when a player reaches the target score.
     if(scores[roundWinnerId] >= game.targetScore) {
-        return { ...game, scores, winner: game.currentRound!.players[roundWinnerId], currentRound: undefined }
+        return { ...game, scores, winner: round.players[roundWinnerId], currentRound: undefined }
     }
 
     // Game Rule: Otherwise, a new round starts.

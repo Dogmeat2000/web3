@@ -1,23 +1,22 @@
 import {Shuffler } from "../utils/random_utils";
 import { Player } from "./player";
-import {Card, Color, shuffleCards, TypedCard} from "./deck";
-import {createInitialDeck} from "../../__test__/utils/test_adapter";
+import {Card, Color, initializeDeck, shuffleCards, TypedCard} from "./deck";
+import * as _ from "lodash"
 
 export type Round = {
-    readonly players: Player[],
+    readonly players: readonly Player[],
     readonly dealer: Player,
-    readonly drawPile: Card[],
-    readonly discardPile: Card[],
+    readonly drawPile: readonly Card[],
+    readonly discardPile: readonly Card[],
     readonly shuffler: Shuffler<Card>,
     readonly activeCardColor: Color,
     readonly activePlayer?: Player,
     readonly playPassDirection: 'counterclockwise' | 'clockwise',
     readonly noOfCardsPlayerMustDraw: number,
-    readonly skipNextPlayer: boolean,
-    readonly endCallbacks?: ((event: { winner: number}) => void)[]
+    readonly skipNextPlayer: boolean
 }
 
-export function createRound(players: string[], dealer: number, shuffler: Shuffler<Card>, cardsPerPlayer: number, initializeFreshRound: boolean = true): Round {
+export function createRound(players: readonly string[], dealer: number, shuffler: Shuffler<Card>, cardsPerPlayer: number, initializeFreshRound: boolean = true): Round {
     if(validPlayerCount(players)) {
         return initializeFreshRound ?
             initializeRoundFromEmpty(
@@ -51,6 +50,10 @@ export function play(cardIndex: number, round: Round, namedColor?: Color): Round
     // Game Rule: Cannot play if round has already ended
     if(hasEnded(round)) {
         throw new Error(`Cannot play. Round has already ended. Winner is: ${checkForWinner(round)}`)
+    }
+
+    if(cardIndex < 0 || cardIndex >= round.players[round.activePlayer!.playerId].hand.length) {
+        throw new Error('Card index must not be out of bounds.')
     }
 
     // Game Rule: Player cannot name a color, when playing a colored card
@@ -97,7 +100,7 @@ export function topOfDiscard(round: Round): Card {
  * Checks that the card with the provided index on the active players hand in the provided round, can be played.
  */
 export function canPlay(cardIndex: number, round: Round): boolean {
-    if(cardIndex < 0 || cardIndex >= round.players.length || hasEnded(round)) {
+    if(round.activePlayer === undefined || cardIndex < 0 || cardIndex >= round.players[round.activePlayer.playerId].hand.length || hasEnded(round)) {
         return false
     }
     return canPlayCard(round.players[round.activePlayer!.playerId].hand[cardIndex], round.players[round.activePlayer!.playerId].hand, topOfDiscard(round), round.activeCardColor)
@@ -110,7 +113,7 @@ export function canPlay(cardIndex: number, round: Round): boolean {
  * @param activeColor The color that is currently active in the Round.
  * @return True if the card on the specified index position in the currently active players hand can be played. Otherwise, returns False.
  */
-function canPlayCard(cardToPlay: Card, playerHand: Card[], topCardFromDiscardPile: Card, activeColor: Color): boolean {
+function canPlayCard(cardToPlay: Card, playerHand: readonly Card[], topCardFromDiscardPile: Card, activeColor: Color): boolean {
     switch(cardToPlay.type){
         case 'NUMBERED':
             return canPlayNumberedCard(cardToPlay, topCardFromDiscardPile, activeColor)
@@ -222,14 +225,9 @@ function canPlayNumberedCard(numberedCard: TypedCard<'NUMBERED'>, discardPileCar
 /**
  * Validates if the player is eligible to play a Wild Draw card, based on the current hand of the player and the currently active color.
  */
-function canPlayWildDrawCard(playerHand: Card[], activeColor: Color): boolean {
+function canPlayWildDrawCard(playerHand: readonly Card[], activeColor: Color): boolean {
     // Game Rule: WILD DRAW 4 card can be played only if the player doesn't hold any cards that match the color of the card previously played
-    for(const card of playerHand) {
-        if('color' in card && card.color === activeColor) {
-            return false
-        }
-    }
-    return true
+    return !playerHand.some(card => 'color' in card && card.color === activeColor)
 }
 
 /**
@@ -272,12 +270,7 @@ export function canPlayAny(round: Round): boolean {
         return false
     }
 
-    for (let i = 0; i < round.players[round.activePlayer!.playerId].hand.length; i++) {
-        if(canPlay(i, round)) {
-            return true
-        }
-    }
-    return false;
+    return round.players[round.activePlayer!.playerId].hand.some((_card, cardIndex) => canPlay(cardIndex, round))
 }
 
 /**
@@ -291,8 +284,8 @@ export function draw(round: Round): Round {
         throw new Error(`Cannot draw. Round has already ended. Winner is: ${checkForWinner(round)}`)
     }
 
-    // Game Rule: Cannot draw cards, if player already drew cards in this turn:
-    if(round.activePlayer!.hasDrawnCardInTurn) {
+    // Game Rule: Cannot draw cards, if active player already drew cards in this turn:
+    if(round.players[round.activePlayer!.playerId].hasDrawnCardInTurn) {
         throw new Error(`Cannot draw. Player has already drawn cards in this turn. Current payer is: ${round.activePlayer!.playerName}`)
     }
 
@@ -431,28 +424,30 @@ export function score(round: Round): number | undefined {
         return undefined
     }
 
-    return round.players.reduce(
-        (totalScore, player) => totalScore + player.hand.reduce((scoreOnHand, card) => {
-            switch(card.type){
-                case 'NUMBERED':
-                    return scoreOnHand + card.number
-                case 'REVERSE':
-                case "SKIP":
-                case 'DRAW':
-                    return scoreOnHand + 20
-                case 'WILD':
-                case 'WILD DRAW':
-                    return scoreOnHand + 50
-                default:
-                    return scoreOnHand
-            }}, 0),
-        0)
+    return _.sumBy(round.players, player => _.sumBy(player.hand, cardScore))
+}
+
+/**
+ * Returns the points a card give.
+ */
+function cardScore(card: Card): number {
+    switch(card.type) {
+        case 'NUMBERED':
+            return card.number
+        case 'REVERSE':
+        case 'SKIP':
+        case 'DRAW':
+            return 20
+        case 'WILD':
+        case 'WILD DRAW':
+            return 50
+    }
 }
 
 /**
  * Validates if the player count is between 2 and 10 players. Returns true if so, otherwise returns false.
  */
-function validPlayerCount(players: string[]): boolean {
+function validPlayerCount(players: readonly string[]): boolean {
     // Game Rule: Rounds in UNO must be played by between 2 and 10 players.
     if(players.length > 10 || players.length < 2) {
         throw new Error(`A round must be played by between 2 to 10 players. Round was attempted to be played with ${players.length} players`)
@@ -464,7 +459,7 @@ function validPlayerCount(players: string[]): boolean {
 /**
  * Initializes new players based on the provided player names.
  */
-function initializePlayers(players: string[]): Player[] {
+function initializePlayers(players: readonly string[]): Player[] {
     return players.map((name, index) => ({
         playerId: index,
         playerName: name,
@@ -478,7 +473,7 @@ function initializePlayers(players: string[]): Player[] {
  * Initializes each Player's hand for the players provided, taking cards from the provided fresh card Deck.
  * Returns the initialized Players with their hands and an array of cards that were not distributed to players.
  */
-function initializePlayerHands(players: Player[], dealer: number, cardDeck: Card[], cardsPerPlayer: number): { players: Player[], remainingCards: Card[] } {
+function initializePlayerHands(players: readonly Player[], dealer: number, cardDeck: Card[], cardsPerPlayer: number): { players: Player[], remainingCards: Card[] } {
     if(players.length * cardsPerPlayer > cardDeck.length){
         throw new Error(`Not enough cards in Card Deck to initialize player hands.`)
     }
@@ -498,7 +493,7 @@ function initializePlayerHands(players: Player[], dealer: number, cardDeck: Card
 /**
  * Creates a barebones empty Round. Unspecified attributes of the Round are initialized as empty or undefined.
  */
-function createEmptyRound(players: string[], dealer: number, shuffler: Shuffler<Card>): Round {
+function createEmptyRound(players: readonly string[], dealer: number, shuffler: Shuffler<Card>): Round {
     const newPlayers: Player[] = initializePlayers(players)
 
     return {
@@ -520,7 +515,7 @@ function createEmptyRound(players: string[], dealer: number, shuffler: Shuffler<
  */
 function initializeRoundFromEmpty(emptyRound: Round, cardsPerPlayer: number ): Round {
     // Game Rule: Shuffle the deck before dealing:
-    const newDeck: Card[] = shuffleCards(createInitialDeck(), emptyRound.shuffler)
+    const newDeck: Card[] = shuffleCards(initializeDeck(), emptyRound.shuffler)
     const { players: initializedPlayers, remainingCards: remainingDeck } = initializePlayerHands(emptyRound.players, emptyRound.dealer.playerId, newDeck, cardsPerPlayer)
 
     const { startingCard, remainingDeck: drawPile } = pickStartingCard(remainingDeck, emptyRound.shuffler)
