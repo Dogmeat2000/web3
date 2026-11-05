@@ -1,0 +1,115 @@
+<script setup lang="ts">
+import { computed, reactive, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import GameFooter from '@/components/shared/GameFooter.vue'
+import { useGameStore } from '@/stores/gameStore.ts'
+import { usePlayerStore } from '@/stores/playerStore.ts'
+import { GAME_NAME_MAX_LENGTH, validateCredentials, type CredentialErrors } from '@/models/GameSettings'
+import type { GameCredentials } from '@domain/model/uno.dto.ts'
+
+const router = useRouter()
+const gameStore = useGameStore()
+const playerStore = usePlayerStore()
+const { pendingHost, hostedGame, error: gameError } = storeToRefs(gameStore)
+
+const form = reactive<GameCredentials>({
+  name: pendingHost.value?.name ?? '',
+  password: pendingHost.value?.password ?? '',
+})
+const fieldErrors = ref<CredentialErrors>({})
+
+if (playerStore.playerName === '') {
+  router.replace({ name: 'login' })
+}
+
+gameStore.clearError()
+
+const message = computed(() => fieldErrors.value.name ?? fieldErrors.value.password ?? gameError.value ?? '')
+
+watch(form, () => {
+  fieldErrors.value = {}
+  gameStore.clearError()
+})
+
+function isValid(): boolean {
+  fieldErrors.value = validateCredentials(form)
+  return Object.keys(fieldErrors.value).length === 0
+}
+
+async function join(): Promise<void> {
+  if (!isValid()) {
+    return
+  }
+
+  if ((await gameStore.connectJoinAttempt(form)) && hostedGame.value !== null) {
+    await router.push({ name: 'game', params: { name: hostedGame.value.name } })
+  }
+}
+
+async function host(): Promise<void> {
+  if (!isValid()) {
+    return
+  }
+
+  gameStore.prepareHost(form)
+  await router.push({ name: 'host' })
+}
+</script>
+
+<template>
+  <main class="lobby" id="lobby-screen">
+    <section class="modal modal--card" aria-labelledby="lobby-title">
+      <RouterLink :to="{ name: 'login' }" class="modal__close" aria-label="Back to choosing your name"> × </RouterLink>
+
+      <h1 class="modal__title" id="lobby-title">A Game of UNO</h1>
+
+      <p class="modal__intro">
+        <strong>Welcome, {{ playerStore.playerName }}!</strong><br />
+        Join a game by entering the name of a hosted game and its password, or host your own game and invite your friends.
+      </p>
+
+      <form class="lobby-form" id="lobby-form" novalidate @submit.prevent="join">
+        <!-- Game Name -->
+        <input
+          v-model.trim="form.name"
+          class="field"
+          id="game-name"
+          name="gameName"
+          type="text"
+          placeholder="Game Name"
+          autocomplete="off"
+          :maxlength="GAME_NAME_MAX_LENGTH"
+          :aria-invalid="fieldErrors.name ? 'true' : undefined"
+          aria-describedby="form-error"
+          required
+        />
+
+        <!-- Password input -->
+        <input
+          v-model="form.password"
+          class="field"
+          id="game-password"
+          name="password"
+          type="password"
+          placeholder="Password"
+          autocomplete="off"
+          :aria-invalid="fieldErrors.password ? 'true' : undefined"
+          aria-describedby="form-error"
+          required
+        />
+
+        <!-- Buttons -->
+        <button class="btn" type="submit" @submit="join">Join Game</button>
+        <button class="btn" type="button" @click="host">Host Game</button>
+      </form>
+
+      <!-- Validation messages -->
+      <p class="form-error" id="form-error" role="alert">{{ message }}</p>
+
+      <GameFooter />
+    </section>
+  </main>
+</template>
+
+<style scoped></style>
