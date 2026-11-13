@@ -1,4 +1,4 @@
-import { type Card } from '@domain/model/card.ts'
+import { type Card } from '@domain/model/deck.ts'
 
 export function getCardUrl(card: Card): string {
   switch (card.type) {

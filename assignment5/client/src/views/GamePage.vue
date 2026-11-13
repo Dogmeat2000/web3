@@ -9,7 +9,7 @@ import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { getCardUrl } from '@/helpers/cardUrlHelper.ts'
 import { useRouter } from 'vue-router'
-import type { Color } from '@domain/model/color.ts'
+import type { Color } from '@domain/model/deck.ts'
 import type { ScoreRow } from '@/models/ScoreRow.ts'
 
 const router = useRouter()

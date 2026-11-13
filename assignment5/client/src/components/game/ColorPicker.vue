@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Color } from '@domain/model/color.ts'
+import type { Color } from '@domain/model/deck.ts'
 
 defineEmits<{ choose: [color: Color] }>()
 </script>

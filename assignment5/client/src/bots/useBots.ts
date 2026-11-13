@@ -1,10 +1,9 @@
 import { onUnmounted, watch, type Ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useGameStore } from '@/stores/gameStore.ts'
-import type { Card } from '@domain/model/card.ts'
-import type { Color } from '@domain/model/color.ts'
+import type { Color, Card } from '@domain/model/deck.ts'
 import type { Round } from '@domain/model/round.ts'
-import type { PublicGame } from '@domain/model/uno.dto.ts'
+import type { PublicGame } from '@domain/model/uno.ts'
 
 type Action = { type: 'draw' } | { type: 'play'; cardIndex: number; namedColor?: Color }
 

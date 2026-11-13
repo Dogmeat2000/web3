@@ -1,5 +1,4 @@
-import { type Card, validColors } from '@domain/model/card'
-import type { Color } from '@domain/model/color.ts'
+import { type Card, type Color, VALID_COLORS } from '@domain/model/deck.ts'
 
 /**
  * Decides the action a bot should take in a round.
@@ -30,7 +29,7 @@ onmessage = (event: MessageEvent<{ hand: Card[]; playable: number[] }>): void =>
 function bestColor(hand: Card[]): Color {
   let best: Color = 'RED'
   let bestCount: number = -1
-  for (const color of validColors) {
+  for (const color of VALID_COLORS) {
     const count: number = hand.filter((card: Card): boolean => 'color' in card && card.color === color).length
 
     if (count > bestCount) {

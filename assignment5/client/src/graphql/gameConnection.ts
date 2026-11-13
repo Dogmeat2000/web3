@@ -1,6 +1,6 @@
 import { gql } from '@apollo/client'
 import { apolloClient } from '@/graphql/apolloClient.ts'
-import type { Color } from '@domain/model/color.ts'
+import type { Color } from '@domain/model/deck.ts'
 import type { GameCredentials, GameSettings, PublicGame } from '@domain/model/uno.dto.ts'
 
 const cardFields = `type color number`

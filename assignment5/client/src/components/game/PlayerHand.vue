@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Card } from '@domain/model/card.ts'
+import type { Card } from '@domain/model/deck.ts'
 import { getCardUrl } from '@/helpers/cardUrlHelper.ts'
 
 defineProps<{

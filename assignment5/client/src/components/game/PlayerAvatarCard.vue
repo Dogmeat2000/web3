@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { validColors } from '@domain/model/card.ts'
-import type { Color } from '@domain/model/color.ts'
+import { type Color } from '@domain/model/deck.ts'
 
 const props = defineProps<{
   playerId: number
