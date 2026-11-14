@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router'
 import { PLAYER_NAME_MAX_LENGTH } from '@/slices/player_slice'
 import type { Dispatch, State } from '@/stores/store'
 import LoginThunk from '@/thunks/LoginThunk'
+import GameFooter from '@/components/shared/GameFooter.tsx'
 
 export default function LoginPage() {
   const dispatch: Dispatch = useDispatch()
@@ -32,6 +33,7 @@ export default function LoginPage() {
         <p className="modal__intro">Choose a name to use in the game.</p>
 
         <form className="login-form" id="login-form" noValidate onSubmit={login}>
+          {/* Player Name */}
           <input
             value={playerName}
             onChange={(event) => {
@@ -49,14 +51,19 @@ export default function LoginPage() {
             aria-describedby="form-error"
             required
           />
+
+          {/* Buttons */}
           <button className="btn" type="submit">
             Continue
           </button>
         </form>
 
+        {/* Validation messages */}
         <p className="form-error" id="form-error" role="alert">
           {message}
         </p>
+
+        <GameFooter />
       </section>
     </main>
   )
