@@ -1,8 +1,8 @@
 import { type PubSub, withFilter } from 'graphql-subscriptions'
-import type { Color } from '@domain/model/color.ts'
+import type { Color } from '@domain/model/deck.ts'
 import type { GameCredentials, GameSettings, PublicGame } from '@domain/model/uno.dto.ts'
 import type { StoredGame } from './game-store.ts'
-import type { ServerModel } from './server-model.ts'
+import { GameApi } from "./game-api.ts";
 
 const GAME_UPDATED = 'GAME_UPDATED'
 
@@ -16,7 +16,7 @@ function toPublicGame(game: StoredGame): PublicGame {
     return publicGame
 }
 
-export function createGameResolvers(model: ServerModel, pubsub: PubSub) {
+export function createGameResolvers(model: GameApi, pubsub: PubSub) {
 
     async function publish(change: Promise<StoredGame>): Promise<PublicGame> {
         const game: PublicGame = toPublicGame(await change)

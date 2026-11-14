@@ -7,7 +7,6 @@ import type { StoredGame } from './game-store.ts'
 import _ from 'lodash/fp.js'
 import {Player} from "@domain/model/player.ts";
 import {randomUUID} from "node:crypto";
-import {Game} from "@domain/model/uno.ts";
 
 /** Default names of all players. These are use if player for some reason has no custom name (i.e. for bots) */
 const defaultPlayerNames: string[] = ['player1', 'player2', 'player3', 'player4', 'player5', 'player6', 'player7', 'player8', 'player9', 'player10']
@@ -18,85 +17,23 @@ export type Randomness = {
     readonly randomizer: Randomizer
 }
 
-/** A stored game that is being played, together with the domain Game and Round rebuilt from it. */
-type LoadedGame = { record: StoredGame, game: Uno.Game, round: Round.Round }
-
-/**
- * Returns the name a person chose for themselves, in lower case and without spaces around it.
- */
-/*function enforceLowerCasePlayerName(playerName: string): string {
-    const lowerCasePlayerName: string = playerName.trim().toLowerCase()
-
-    if (lowerCasePlayerName === '') {
-        throw new Error('Please enter a name')
-    }
-
-    return lowerCasePlayerName
-}*/
-
-/**
- * The primary server model responsible for serving the game from the server store.
- */
-//export class ServerModel {
-    /*private readonly store: GameStore
-
-    constructor(store: GameStore) {
-        this.store = store
-    }*/
-
-    /**
-     * Allows other players to join a hosted AND pending game.
-     */
-    /*async joinGame(name: string, password: string, playerName: string): Promise<StoredGame> {
-        const record: StoredGame = await this.fetchGame(name, password, 'PENDING')
-        const joiningName: string = enforceLowerCasePlayerName(playerName)
-
-        if (record.joinedPlayers.length >= record.players.length) {
-            throw new Error(`"${record.name}" is already full.`)
-        }
-
-        // A name can only be used once in a game.
-        if (record.joinedPlayers.includes(joiningName)) {
-            throw new Error(`A player named "${joiningName}" has already joined "${record.name}".`)
-        }
-
-        const playerId: number = record.joinedPlayers.length
-        record.joinedPlayers.push(joiningName)
-        record.players[playerId] = joiningName
-
-        if (record.currentRound !== undefined) {
-            record.currentRound.players[playerId] = joiningName
-        }
-
-        return this.save(record)
-    }*/
-
-    /**
-     * Starts a game, locking it so other human players cannot join it.
-     */
-    /*async startGame(name: string, password: string): Promise<StoredGame> {
-        const record: StoredGame = await this.fetchGame(name, password, 'PENDING')
-
-        record.status = 'ACTIVE'
-        return this.save(record)
-    }*/
-//}
-
 // Primary Game Server Model functions
 /**
  * Creates a new game and places the host in it, under the name the host chose. Other players can join until it is started.
  */
-export function createServerGame(gameName: string, password: string, playerCount: number, targetScore: number, hostPlayerName: string, randomness: Randomness): StoredGame {
+export function createServerGame(id: string, gameName: string, password: string, playerCount: number, targetScore: number, hostPlayerName: string, randomness: Randomness): StoredGame {
+    validatePlayerCount(playerCount)
+
     // The host is always the first player.
-    const newGame: Game = Uno.createGame(
+    const newGame: Uno.Game = Uno.createGame(
         [enforceLowerCasePlayerName(hostPlayerName), ...defaultPlayerNames.slice(1, playerCount)],
         validateTargetScore(targetScore),
         randomness.randomizer,
         randomness.shuffler)
 
     return {
-        ...newGame,
-        id: randomUUID(),
+        ...toGameData(newGame),
+        id: id,
         name: enforceTrimmedGameName(gameName),
         password: requireGamePassword(password),
         joinedPlayers: [newGame.playerNames[0]],
@@ -107,11 +44,46 @@ export function createServerGame(gameName: string, password: string, playerCount
     }
 }
 
+/**
+ * Returns the pending game with the specified player added under the name they chose.
+ */
+export function joinServerGame(playerName: string, record: StoredGame): StoredGame {
+    const pending: StoredGame = requireStatus('PENDING')(record)
+    const joiningName: string = enforceLowerCasePlayerName(playerName)
+
+    if (pending.joinedPlayers.length >= pending.playerNames.length) {
+        throw new Error(`"${pending.name}" is already full.`)
+    }
+
+    // A name can only be used once in a game.
+    if (pending.joinedPlayers.includes(joiningName)) {
+        throw new Error(`A player named "${joiningName}" has already joined "${pending.name}".`)
+    }
+
+    const playerId: number = pending.joinedPlayers.length
+
+    return {
+        ...pending,
+        joinedPlayers: [...pending.joinedPlayers, joiningName],
+        playerNames: _.set(playerId, joiningName, pending.playerNames),
+        currentRound: pending.currentRound === undefined ? undefined : renamePlayer(playerId, joiningName, pending.currentRound)
+    }
+}
+
+/**
+ * Starts a game, locking it so other human players cannot join it.
+ */
+export function startServerGame(record: StoredGame): StoredGame {
+    return _.flow([
+        requireStatus('PENDING'),
+        start
+    ])(record)
+}
 
 /**
  * Returns the stored game after the specified player plays a card.
  */
-export function play(randomness: Randomness, playerId: number, cardIndex: number, record: StoredGame, namedColor?: Color): StoredGame {
+export function play(randomness: Randomness, playerId: number, cardIndex: number, namedColor: Color | undefined, record: StoredGame): StoredGame {
     const checkedGame: StoredGame = _.flow([
         requireStatus('ACTIVE'),
         requireTurn(playerId)
@@ -121,6 +93,7 @@ export function play(randomness: Randomness, playerId: number, cardIndex: number
 
     return _.flow([
         applyMove(randomness, (): Round.Round => playedRound),
+        recordPlay(playerId, namedColor, playedRound),
         finishIfWon
     ])(checkedGame)
 }
@@ -195,32 +168,31 @@ function applyMove(randomness: Randomness, move: (round: Round.Round) => Round.R
  * Pipe step function, accuse everyone of having forgot to say Uno, since the domain ensures only the previous player can successfully be accused.
  */
 function accusePlayers(accusingPlayerId: number): (round: Round.Round) => Round.Round {
-    return (round: Round.Round): Round.Round => round.players
-        .filter((player: Player): boolean => player.playerId !== accusingPlayerId)
+    return (round: Round.Round): Round.Round =>
+        _.reject(_.matches({ playerId: accusingPlayerId }), round.players)
         .reduce((currentRound: Round.Round, player: Player): Round.Round =>
             Round.catchUnoFailure({ accuser: accusingPlayerId, accused: player.playerId }, currentRound), round)
 }
 
 /**
- * Pipe step function, that converts Game domain data into store friendly GameData types.
+ * Returns the converted Game domain data into store friendly GameData types.
  */
 function toGameData(game: Uno.Game): GameData {
-    const { randomizer, shuffler, currentRound, ...gameData } = game
-
-    return { ...gameData, currentRound: currentRound === undefined ? undefined : toRoundData(currentRound) }
+    return {
+        ..._.omit(['randomizer', 'shuffler', 'currentRound'], game),
+        currentRound: game.currentRound === undefined ? undefined : toRoundData(game.currentRound)
+    }
 }
 
 /**
- * Pipe step function, that converts Round domain data into store friendly RoundData types.
+ * Returns the converted Round domain data into store friendly RoundData types.
  */
 function toRoundData(round: Round.Round): RoundData {
-    const { shuffler, ...roundData } = round
-
-    return roundData
+    return _.omit(['shuffler'], round)
 }
 
 /**
- * Pipe step function, that converts the domain game of a stored game, with the shuffler and randomizer put back.
+ * Returns the converted the domain game of a stored game, with the shuffler and randomizer put back.
  */
 function toGame(randomness: Randomness, record: StoredGame): Uno.Game {
     return {
@@ -236,7 +208,7 @@ function toGame(randomness: Randomness, record: StoredGame): Uno.Game {
 }
 
 /**
- * Pipe step function, that returns a trimmed name. Throws an error if name is empty.
+ * Returns the trimmed name. Throws an error if name is empty.
  */
 function enforceTrimmedGameName(name: string): string {
     const trimmedName: string = name.trim()
@@ -249,7 +221,7 @@ function enforceTrimmedGameName(name: string): string {
 }
 
 /**
- * Pipe step function, that verifies and returns a games password. Throws an error if password is empty.
+ * Returns the password after verification. Throws an error if password is empty.
  */
 function requireGamePassword(password: string): string {
     if (password === '') {
@@ -320,4 +292,25 @@ function recordPlay(playerId: number, namedColor: Color | undefined, playedRound
  */
 function finishIfWon(record: StoredGame): StoredGame {
     return record.winner === undefined ? record : { ...record, status: 'FINISHED' }
+}
+
+/**
+ * Returns the record as started.
+ */
+function start(record: StoredGame): StoredGame {
+    return { ...record, status: 'ACTIVE' }
+}
+
+/**
+ * Returns the round with the specified player renamed, in the dealer and active player copies too.
+ */
+function renamePlayer(playerId: number, playerName: string, round: RoundData): RoundData {
+    const rename = (player: Player): Player => player.playerId === playerId ? { ...player, playerName } : player
+
+    return {
+        ...round,
+        players: round.players.map(rename),
+        dealer: rename(round.dealer),
+        activePlayer: round.activePlayer === undefined ? undefined : rename(round.activePlayer)
+    }
 }

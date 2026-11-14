@@ -2,6 +2,7 @@ import { GameStore, StoredGame } from "./game-store.ts";
 import * as ServerModel from "./server-model.ts";
 import _ from 'lodash/fp.js'
 import { Color } from "@domain/model/deck.ts";
+import {randomUUID} from "node:crypto";
 
 /** The game operations the resolvers call; each one reads and writes the store. */
 export type GameApi = {
@@ -37,17 +38,21 @@ export function createGameApi(store: GameStore, randomness: ServerModel.Randomne
             throw new Error(`A game named "${name}" is already hosted.`)
         }
 
-        const newGameRecord: StoredGame = ServerModel.createServerGame(name, password, playerCount, targetScore, playerName, randomness)
+        const newGameRecord: StoredGame = ServerModel.createServerGame(randomUUID(), name, password, playerCount, targetScore, playerName, randomness)
         await store.add(newGameRecord)
         return newGameRecord
     }
 
     async function joinGame(name: string, password: string, playerName: string): Promise<StoredGame> {
-        //TODO
+        return update(name, password, (record: StoredGame): StoredGame => ServerModel.joinServerGame(playerName, record))
+    }
+
+    async function startGame(name: string, password: string): Promise<StoredGame> {
+        return update(name, password, ServerModel.startServerGame)
     }
 
     async function play(name: string, password: string, playerId: number, cardIndex: number, namedColor?: Color): Promise<StoredGame> {
-        //TODO
+        return update(name, password, (record: StoredGame): StoredGame => ServerModel.play(randomness, playerId, cardIndex, namedColor, record))
     }
 
     async function draw(name: string, password: string, playerId: number): Promise<StoredGame> {
@@ -55,11 +60,11 @@ export function createGameApi(store: GameStore, randomness: ServerModel.Randomne
     }
 
     async function sayUno(name: string, password: string, playerId: number): Promise<StoredGame> {
-        //TODO
+        return update(name, password, (record: StoredGame): StoredGame => ServerModel.sayUno(randomness, playerId, record))
     }
 
     async function catchUno(name: string, password: string, playerId: number): Promise<StoredGame> {
-        //TODO
+        return update(name, password, (record: StoredGame): StoredGame => ServerModel.catchUno(randomness, playerId, record))
     }
 
     // The sandwich model: read the game, change it with a pure function, write the result.
@@ -69,10 +74,6 @@ export function createGameApi(store: GameStore, randomness: ServerModel.Randomne
 
         await store.update(changed)
         return changed
-    }
-
-    async function startGame(name: string, password: string): Promise<StoredGame> {
-        return update(name, password, ServerModel.startGame)
     }
 
     return { fetchGame, hostGame, joinGame, startGame, play, draw, sayUno, catchUno }

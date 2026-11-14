@@ -18,7 +18,7 @@ import { MemoryStore } from './memory-store.ts'
 import connectMongoStore from './mongo-store.ts'
 import {GraphQLSchema} from "graphql/type";
 import {standardRandomizer, standardShuffler} from "@domain/utils/random_utils.ts";
-import {createGameApi} from "./game-api.ts";
+import {createGameApi, GameApi} from "./game-api.ts";
 
 const __filename: string = fileURLToPath(import.meta.url)
 const __dirname: string = path.dirname(__filename)
