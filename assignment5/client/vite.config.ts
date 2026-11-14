@@ -1,13 +1,11 @@
 import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig, searchForWorkspaceRoot } from 'vite'
-import vue from '@vitejs/plugin-vue'
-import vueJsx from '@vitejs/plugin-vue-jsx'
-import vueDevTools from 'vite-plugin-vue-devtools'
+import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [vue(), vueJsx(), vueDevTools()],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -16,10 +14,7 @@ export default defineConfig({
   },
   server: {
     fs: {
-      allow: [
-        searchForWorkspaceRoot(process.cwd()),
-        fileURLToPath(new URL('../domain/src', import.meta.url)),
-      ],
+      allow: [searchForWorkspaceRoot(process.cwd()), fileURLToPath(new URL('../domain/src', import.meta.url))],
     },
   },
 })

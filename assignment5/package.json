@@ -1,0 +1,17 @@
+{
+  "name": "uno-assignment5",
+  "private": true,
+  "description": "Runs the UNO client and server. npm start runs the server, which also serves the built client; this is what runs when the game is deployed.",
+  "scripts": {
+    "setup": "npm install && npm install --prefix domain && npm install --prefix client && npm install --prefix server",
+    "dev": "run-p --print-label dev:server dev:client",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client -- --clearScreen false",
+    "build": "npm run build --prefix client",
+    "start": "cd server && node --env-file-if-exists=.env --import tsx src/apollo-server.ts",
+    "prod": "npm run build && npm start"
+  },
+  "devDependencies": {
+    "npm-run-all2": "^9.0.3"
+  }
+}
