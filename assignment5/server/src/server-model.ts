@@ -1,14 +1,16 @@
 import * as Round from '@domain/model/round.ts'
 import { Card, Color} from '@domain/model/deck.ts'
 import * as Uno from '@domain/model/uno.ts'
-import type {GameData, GameStatus, RoundData} from '@domain/model/uno.dto.ts'
+import type { GameData, GameStatus, RoundData } from '@domain/model/uno.dto.ts'
 import { Randomizer, Shuffler } from '@domain/utils/random_utils.ts'
-import type { GameStore, StoredGame } from './game-store.ts'
+import type { StoredGame } from './game-store.ts'
 import _ from 'lodash/fp.js'
 import {Player} from "@domain/model/player.ts";
+import {randomUUID} from "node:crypto";
+import {Game} from "@domain/model/uno.ts";
 
 /** Default names of all players. These are use if player for some reason has no custom name (i.e. for bots) */
-const defaultPlayerNames: string[] = ['Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6', 'Player7', 'Player8', 'Player9', 'Player10']
+const defaultPlayerNames: string[] = ['player1', 'player2', 'player3', 'player4', 'player5', 'player6', 'player7', 'player8', 'player9', 'player10']
 
 /** The shuffler and randomizer a game is played with. */
 export type Randomness = {
@@ -22,7 +24,7 @@ type LoadedGame = { record: StoredGame, game: Uno.Game, round: Round.Round }
 /**
  * Returns the name a person chose for themselves, in lower case and without spaces around it.
  */
-function enforceLowerCasePlayerName(playerName: string): string {
+/*function enforceLowerCasePlayerName(playerName: string): string {
     const lowerCasePlayerName: string = playerName.trim().toLowerCase()
 
     if (lowerCasePlayerName === '') {
@@ -30,79 +32,16 @@ function enforceLowerCasePlayerName(playerName: string): string {
     }
 
     return lowerCasePlayerName
-}
+}*/
 
 /**
  * The primary server model responsible for serving the game from the server store.
  */
-export class ServerModel {
-    private readonly store: GameStore
+//export class ServerModel {
+    /*private readonly store: GameStore
 
     constructor(store: GameStore) {
         this.store = store
-    }
-
-    /**
-     * Loads the game with this name and password.
-     */
-    /*async fetchGame(name: string, password: string, needed?: GameStatus): Promise<StoredGame> {
-        const record: StoredGame | undefined = await this.store.find(name)
-        if (record === undefined || record.password !== password) {
-            throw new Error('No game matches that name and password.')
-        }
-
-        if (needed !== undefined && record.status !== needed) {
-            throw new Error(`"${record.name}" is ${record.status.toLowerCase()}.`)
-        }
-
-        return record
-    }*/
-
-    /**
-     * Creates a new game and places the host in it, under the name the host chose. Other players can join until it is started.
-     */
-    /*async hostGame(name: string, password: string, playerCount: number, targetScore: number, playerName: string): Promise<StoredGame> {
-        const trimmedGameName: string = name.trim()
-        if (trimmedGameName === '') {
-            throw new Error('Enter the name of a game.')
-        }
-
-        if (password === '') {
-            throw new Error('Enter the game password.')
-        }
-
-        if (playerCount < 2 || playerCount > 10) {
-            throw new Error('Number of players must be between 2 and 10.')
-        }
-
-        if (targetScore < 1) {
-            throw new Error('Target score must be above 0')
-        }
-
-        const hostName: string = enforceLowerCasePlayerName(playerName)
-        const existing: StoredGame | undefined = await this.store.find(trimmedGameName)
-
-        if (existing !== undefined) {
-            throw new Error(`A game named "${trimmedGameName}" is already hosted.`)
-        }
-
-        // The host is always the first player.
-        const game = new GameImpl([hostName, ...defaultPlayerNames.slice(1, playerCount)], targetScore)
-        const record: StoredGame = {
-            ...game.toMemento(),
-            id: randomUUID(),
-            name: trimmedGameName,
-            password,
-            joinedPlayers: [hostName],
-            status: 'PENDING',
-            version: 0,
-            namedColor: null,
-            lastRound: null,
-        }
-
-        await this.store.add(record)
-
-        return record
     }*/
 
     /**
@@ -141,18 +80,49 @@ export class ServerModel {
         record.status = 'ACTIVE'
         return this.save(record)
     }*/
-}
+//}
 
 // Primary Game Server Model functions
+/**
+ * Creates a new game and places the host in it, under the name the host chose. Other players can join until it is started.
+ */
+export function createServerGame(gameName: string, password: string, playerCount: number, targetScore: number, hostPlayerName: string, randomness: Randomness): StoredGame {
+    // The host is always the first player.
+    const newGame: Game = Uno.createGame(
+        [enforceLowerCasePlayerName(hostPlayerName), ...defaultPlayerNames.slice(1, playerCount)],
+        validateTargetScore(targetScore),
+        randomness.randomizer,
+        randomness.shuffler)
+
+    return {
+        ...newGame,
+        id: randomUUID(),
+        name: enforceTrimmedGameName(gameName),
+        password: requireGamePassword(password),
+        joinedPlayers: [newGame.playerNames[0]],
+        status: 'PENDING',
+        version: 0,
+        namedColor: null,
+        lastRound: null,
+    }
+}
+
+
 /**
  * Returns the stored game after the specified player plays a card.
  */
 export function play(randomness: Randomness, playerId: number, cardIndex: number, record: StoredGame, namedColor?: Color): StoredGame {
-    return _.flow([
+    const checkedGame: StoredGame = _.flow([
         requireStatus('ACTIVE'),
-        requireTurn(playerId),
-        applyMove(randomness, (round: Round.Round): Round.Round => Round.play(cardIndex, round, namedColor))
+        requireTurn(playerId)
     ])(record)
+
+    const playedRound: Round.Round = Round.play(cardIndex, toGame(randomness, checkedGame).currentRound!, namedColor)
+
+    return _.flow([
+        applyMove(randomness, (): Round.Round => playedRound),
+        finishIfWon
+    ])(checkedGame)
 }
 
 /**
@@ -263,6 +233,65 @@ function toGame(randomness: Randomness, record: StoredGame): Uno.Game {
         shuffler: randomness.shuffler,
         winner: record.winner
     }
+}
+
+/**
+ * Pipe step function, that returns a trimmed name. Throws an error if name is empty.
+ */
+function enforceTrimmedGameName(name: string): string {
+    const trimmedName: string = name.trim()
+
+    if (trimmedName === '') {
+        throw new Error('Enter the name of a game.')
+    }
+
+    return trimmedName
+}
+
+/**
+ * Pipe step function, that verifies and returns a games password. Throws an error if password is empty.
+ */
+function requireGamePassword(password: string): string {
+    if (password === '') {
+        throw new Error('Enter the game password.')
+    }
+
+    return password
+}
+
+/**
+ * Pipe step function, that verifies and returns a player count. Throws an error if player count is invalid.
+ */
+function validatePlayerCount(playerCount: number): number {
+    if (playerCount < 2 || playerCount > 10) {
+        throw new Error('Number of players must be between 2 and 10.')
+    }
+
+    return playerCount
+}
+
+/**
+ * Pipe step function, that verifies and returns the target score. Throws an error if target score is invalid.
+ */
+function validateTargetScore(targetScore: number): number {
+    if (targetScore < 1) {
+        throw new Error('Target score must be above 0')
+    }
+
+    return targetScore
+}
+
+/**
+ * Pipe step function, that enforces trimmed lowercase player names in Stored Games. Throws an error if name is empty.
+ */
+function enforceLowerCasePlayerName(playerName: string): string {
+    const lowerCasePlayerName: string = playerName.trim().toLowerCase()
+
+    if (lowerCasePlayerName === '') {
+        throw new Error('Please enter a name')
+    }
+
+    return lowerCasePlayerName
 }
 
 /**
