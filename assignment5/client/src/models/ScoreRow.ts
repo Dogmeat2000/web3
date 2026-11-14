@@ -1,7 +1,7 @@
 /**
  * One player's line on the scoreboard.
  */
-export interface ScoreRow {
+export type ScoreRow = {
   playerId: number
   name: string
   score: number

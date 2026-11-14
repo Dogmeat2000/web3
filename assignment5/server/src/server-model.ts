@@ -1,24 +1,23 @@
-import { randomUUID } from 'node:crypto'
-import type { Round } from '@domain/model/round.ts'
-import type { Color } from '@domain/model/color.ts'
-import { GameImpl } from '@domain/model/uno.impl.ts'
-import { toGame } from '@domain/model/uno.memento.ts'
-import type { GameStatus } from '@domain/model/uno.dto.ts'
-import { standardRandomizer, standardShuffler } from '@domain/utils/random_utils.ts'
+import * as Round from '@domain/model/round.ts'
+import { Card, Color} from '@domain/model/deck.ts'
+import * as Uno from '@domain/model/uno.ts'
+import type {GameData, GameStatus, RoundData} from '@domain/model/uno.dto.ts'
+import { Randomizer, Shuffler } from '@domain/utils/random_utils.ts'
 import type { GameStore, StoredGame } from './game-store.ts'
-import {Game} from "@domain/model/uno.ts";
+import _ from 'lodash/fp.js'
+import {Player} from "@domain/model/player.ts";
 
 /** Default names of all players. These are use if player for some reason has no custom name (i.e. for bots) */
-const playerNames: string[] = ['Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6', 'Player7', 'Player8', 'Player9', 'Player10']
+const defaultPlayerNames: string[] = ['Player1', 'Player2', 'Player3', 'Player4', 'Player5', 'Player6', 'Player7', 'Player8', 'Player9', 'Player10']
+
+/** The shuffler and randomizer a game is played with. */
+export type Randomness = {
+    readonly shuffler: Shuffler<Card>,
+    readonly randomizer: Randomizer
+}
 
 /** A stored game that is being played, together with the domain Game and Round rebuilt from it. */
-type LoadedGame = { record: StoredGame, game: Game, round: Round }
-
-function requireTurn(round: Round, playerId: number): void {
-    if (round.playerInTurn() !== playerId) {
-        throw new Error("It is not that player's turn.")
-    }
-}
+type LoadedGame = { record: StoredGame, game: Uno.Game, round: Round.Round }
 
 /**
  * Returns the name a person chose for themselves, in lower case and without spaces around it.
@@ -46,7 +45,7 @@ export class ServerModel {
     /**
      * Loads the game with this name and password.
      */
-    async fetchGame(name: string, password: string, needed?: GameStatus): Promise<StoredGame> {
+    /*async fetchGame(name: string, password: string, needed?: GameStatus): Promise<StoredGame> {
         const record: StoredGame | undefined = await this.store.find(name)
         if (record === undefined || record.password !== password) {
             throw new Error('No game matches that name and password.')
@@ -57,12 +56,12 @@ export class ServerModel {
         }
 
         return record
-    }
+    }*/
 
     /**
      * Creates a new game and places the host in it, under the name the host chose. Other players can join until it is started.
      */
-    async hostGame(name: string, password: string, playerCount: number, targetScore: number, playerName: string): Promise<StoredGame> {
+    /*async hostGame(name: string, password: string, playerCount: number, targetScore: number, playerName: string): Promise<StoredGame> {
         const trimmedGameName: string = name.trim()
         if (trimmedGameName === '') {
             throw new Error('Enter the name of a game.')
@@ -88,7 +87,7 @@ export class ServerModel {
         }
 
         // The host is always the first player.
-        const game = new GameImpl([hostName, ...playerNames.slice(1, playerCount)], targetScore)
+        const game = new GameImpl([hostName, ...defaultPlayerNames.slice(1, playerCount)], targetScore)
         const record: StoredGame = {
             ...game.toMemento(),
             id: randomUUID(),
@@ -104,12 +103,12 @@ export class ServerModel {
         await this.store.add(record)
 
         return record
-    }
+    }*/
 
     /**
      * Allows other players to join a hosted AND pending game.
      */
-    async joinGame(name: string, password: string, playerName: string): Promise<StoredGame> {
+    /*async joinGame(name: string, password: string, playerName: string): Promise<StoredGame> {
         const record: StoredGame = await this.fetchGame(name, password, 'PENDING')
         const joiningName: string = enforceLowerCasePlayerName(playerName)
 
@@ -131,110 +130,165 @@ export class ServerModel {
         }
 
         return this.save(record)
-    }
+    }*/
 
     /**
      * Starts a game, locking it so other human players cannot join it.
      */
-    async startGame(name: string, password: string): Promise<StoredGame> {
+    /*async startGame(name: string, password: string): Promise<StoredGame> {
         const record: StoredGame = await this.fetchGame(name, password, 'PENDING')
 
         record.status = 'ACTIVE'
         return this.save(record)
-    }
+    }*/
+}
 
-    /**
-     * Attempts to play a move by the player given with the specified playerId.
-     */
-    async play(name: string, password: string, playerId: number, cardIndex: number, namedColor?: Color): Promise<StoredGame> {
-        const { record, game, round }: LoadedGame = await this.loadActiveGame(name, password)
-        requireTurn(round, playerId)
+// Primary Game Server Model functions
+/**
+ * Returns the stored game after the specified player plays a card.
+ */
+export function play(randomness: Randomness, playerId: number, cardIndex: number, record: StoredGame, namedColor?: Color): StoredGame {
+    return _.flow([
+        requireStatus('ACTIVE'),
+        requireTurn(playerId),
+        applyMove(randomness, (round: Round.Round): Round.Round => Round.play(cardIndex, round, namedColor))
+    ])(record)
+}
 
-        if (!round.canPlay(cardIndex)) {
-            throw new Error('That card cannot be played.')
+/**
+ * Returns the stored game after the specified player draws.
+ */
+export function draw(randomness: Randomness, playerId: number, record: StoredGame): StoredGame {
+    return _.flow([
+        requireStatus('ACTIVE'),
+        requireTurn(playerId),
+        applyMove(randomness, Round.draw)
+    ])(record)
+}
+
+/**
+ * Attempts to apply the effects of 'Say Uno' by the player given with the specified playerId.
+ */
+export function sayUno(randomness: Randomness, playerId: number, record: StoredGame): StoredGame {
+    return _.flow([
+        requireStatus('ACTIVE'),
+        applyMove(randomness, (round: Round.Round): Round.Round => Round.sayUno(playerId, round))
+    ])(record)
+}
+
+/**
+ * Returns the stored game after the specified player calls out whoever forgot to say UNO.
+ */
+export function catchUno(randomness: Randomness, playerId: number, record: StoredGame): StoredGame {
+    return _.flow([
+        requireStatus('ACTIVE'),
+        applyMove(randomness, accusePlayers(playerId))
+    ])(record)
+}
+
+
+// Pipeline functions
+/**
+ * Pipe step function, to verify that the provided playerId corresponds with the currently active player. Throws an error if not.
+ */
+function requireTurn(playerId: number): (record: StoredGame) => StoredGame {
+    return (record: StoredGame): StoredGame => {
+        if (record.currentRound?.activePlayer?.playerId !== playerId) {
+            throw new Error("It is not that player's turn.")
         }
 
-        round.play(cardIndex, namedColor)
-        record.namedColor = namedColor === undefined ? null : { playerId, color: namedColor }
-
-        // The game has already started the next round by now, but `round` is still the one that was just played.
-        if (round.hasEnded()) {
-            record.namedColor = null
-            record.lastRound = { roundsPlayed: (record.lastRound?.roundsPlayed ?? 0) + 1, winner: round.winner()!, addedScore: round.score() ?? 0 }
-        }
-
-        return this.saveGame(record, game)
-    }
-
-    /**
-     * Attempts to draw a card by the player given with the specified playerId.
-     */
-    async draw(name: string, password: string, playerId: number): Promise<StoredGame> {
-        const { record, game, round }: LoadedGame = await this.loadActiveGame(name, password)
-        requireTurn(round, playerId)
-
-        round.draw()
-
-        return this.saveGame(record, game)
-    }
-
-    /**
-     * Attempts to 'Say Uno' by the player given with the specified playerId.
-     */
-    async sayUno(name: string, password: string, playerId: number): Promise<StoredGame> {
-        const { record, game, round }: LoadedGame = await this.loadActiveGame(name, password)
-
-        round.sayUno(playerId)
-
-        return this.saveGame(record, game)
-    }
-
-    /**
-     * Lets a player call out whoever forgot to say UNO.
-     */
-    async catchUno(name: string, password: string, playerId: number): Promise<StoredGame> {
-        const { record, game, round }: LoadedGame = await this.loadActiveGame(name, password)
-
-        // Strategy here is just to accuse everyone, since the domain ensures only the previous player can successfully be accused.
-        for (let accusedPlayerId: number = 0; accusedPlayerId < round.playerCount; accusedPlayerId++) {
-            if (accusedPlayerId !== playerId && round.catchUnoFailure({ accuser: playerId, accused: accusedPlayerId })) {
-                break
-            }
-        }
-
-        return this.saveGame(record, game)
-    }
-
-    /**
-     * Loads a game that is being played, and rebuilds it as a domain Game with its current Round.
-     */
-    private async loadActiveGame(name: string, password: string): Promise<LoadedGame> {
-        const record: StoredGame = await this.fetchGame(name, password, 'ACTIVE')
-        const game: Game = toGame(record, standardShuffler, standardRandomizer)
-        const round: Round | undefined = game.currentRound()
-
-        if (round === undefined) {
-            throw new Error(`"${record.name}" has no round to play.`)
-        }
-
-        return { record, game, round }
-    }
-
-    /**
-     * Saves a game after a move. Returns the stored game after saving completes.
-     */
-    private async saveGame(record: StoredGame, game: Game): Promise<StoredGame> {
-        if (game.winner() !== undefined) {
-            record.status = 'FINISHED'
-        }
-
-        // The record is the game's memento with the hosting fields added
-        return this.save({ ...record, ...game.toMemento() })
-    }
-
-    private async save(record: StoredGame): Promise<StoredGame> {
-        record.version++
-        await this.store.update(record)
         return record
     }
+}
+
+/**
+ * Pipe step function, to verify that the game has the provided status. Throws an error if not.
+ */
+function requireStatus(status: GameStatus): (record: StoredGame) => StoredGame {
+    return (record: StoredGame): StoredGame => {
+        if (record.status !== status) {
+            throw new Error(`"${record.name}" is ${record.status.toLowerCase()}.`)
+        }
+
+        return record
+    }
+}
+
+/**
+ * Pipe step function, that plays the move on the stored game's current round.
+ */
+function applyMove(randomness: Randomness, move: (round: Round.Round) => Round.Round): (record: StoredGame) => StoredGame {
+    return (record: StoredGame): StoredGame => ({ ...record, ...toGameData(Uno.play(move, toGame(randomness, record))) })
+}
+
+/**
+ * Pipe step function, accuse everyone of having forgot to say Uno, since the domain ensures only the previous player can successfully be accused.
+ */
+function accusePlayers(accusingPlayerId: number): (round: Round.Round) => Round.Round {
+    return (round: Round.Round): Round.Round => round.players
+        .filter((player: Player): boolean => player.playerId !== accusingPlayerId)
+        .reduce((currentRound: Round.Round, player: Player): Round.Round =>
+            Round.catchUnoFailure({ accuser: accusingPlayerId, accused: player.playerId }, currentRound), round)
+}
+
+/**
+ * Pipe step function, that converts Game domain data into store friendly GameData types.
+ */
+function toGameData(game: Uno.Game): GameData {
+    const { randomizer, shuffler, currentRound, ...gameData } = game
+
+    return { ...gameData, currentRound: currentRound === undefined ? undefined : toRoundData(currentRound) }
+}
+
+/**
+ * Pipe step function, that converts Round domain data into store friendly RoundData types.
+ */
+function toRoundData(round: Round.Round): RoundData {
+    const { shuffler, ...roundData } = round
+
+    return roundData
+}
+
+/**
+ * Pipe step function, that converts the domain game of a stored game, with the shuffler and randomizer put back.
+ */
+function toGame(randomness: Randomness, record: StoredGame): Uno.Game {
+    return {
+        playerNames: record.playerNames,
+        currentRound: record.currentRound === undefined ? undefined : { ...record.currentRound, shuffler: randomness.shuffler },
+        targetScore: record.targetScore,
+        scores: record.scores,
+        cardsPerPlayer: record.cardsPerPlayer,
+        randomizer: randomness.randomizer,
+        shuffler: randomness.shuffler,
+        winner: record.winner
+    }
+}
+
+/**
+ * Returns a pipe step that stores the named color, or the result of the played round once it has ended.
+ */
+function recordPlay(playerId: number, namedColor: Color | undefined, playedRound: Round.Round): (record: StoredGame) => StoredGame {
+    return (record: StoredGame): StoredGame => {
+        if(!Round.hasEnded(playedRound)){
+            return { ...record, namedColor: namedColor === undefined ? null : { playerId, color: namedColor } }
+        } else {
+            return {
+                ...record,
+                namedColor: null,
+                lastRound: {
+                roundsPlayed: (record.lastRound?.roundsPlayed ?? 0) + 1,
+                    winner: Round.checkForWinner(playedRound)!.playerId,
+                    addedScore: Round.score(playedRound) ?? 0
+            }
+            }
+        }
+    }
+}
+
+/**
+ * Returns the record as finished when its game has a winner.
+ */
+function finishIfWon(record: StoredGame): StoredGame {
+    return record.winner === undefined ? record : { ...record, status: 'FINISHED' }
 }

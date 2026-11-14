@@ -3,7 +3,6 @@ import { defineStore } from 'pinia'
 import type { Game } from '@domain/model/uno'
 import type { Color } from '@domain/model/deck.ts'
 import type { GameCredentials, GameSettings, PublicGame } from '@domain/model/uno.dto.ts'
-import { toGame } from '@domain/model/uno.memento.ts'
 import { standardRandomizer, standardShuffler } from '@domain/utils/random_utils.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import {

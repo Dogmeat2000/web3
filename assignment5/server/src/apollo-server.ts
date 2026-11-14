@@ -16,15 +16,16 @@ import { createGameResolvers } from './resolvers.ts'
 import type { GameStore } from './game-store.ts'
 import { MemoryStore } from './memory-store.ts'
 import connectMongoStore from './mongo-store.ts'
-import { ServerModel } from './server-model.ts'
 import {GraphQLSchema} from "graphql/type";
+import {standardRandomizer, standardShuffler} from "@domain/utils/random_utils.ts";
+import {createGameApi} from "./game-api.ts";
 
 const __filename: string = fileURLToPath(import.meta.url)
 const __dirname: string = path.dirname(__filename)
 
 async function startServer(store: GameStore): Promise<void> {
     const port: number = Number(process.env.PORT ?? 4000)
-    const model = new ServerModel(store)
+    const model: GameApi = createGameApi(store, { shuffler: standardShuffler, randomizer: standardRandomizer })
     const pubsub = new PubSub()
 
     try {
