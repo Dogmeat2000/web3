@@ -1,15 +1,15 @@
 import { useState, type SubmitEvent } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
-import { PLAYER_NAME_MAX_LENGTH } from '@/slices/player_slice'
-import type { Dispatch, State } from '@/stores/store'
+import { PLAYER_NAME_MAX_LENGTH, selectPlayerName } from '@/slices/player_slice'
+import type { Dispatch } from '@/stores/store'
 import LoginThunk from '@/thunks/LoginThunk'
 import GameFooter from '@/components/shared/GameFooter.tsx'
 
 export default function LoginPage() {
   const dispatch: Dispatch = useDispatch()
   const navigate = useNavigate()
-  const storedName: string | undefined = useSelector((state: State): string | undefined => state.player.playerName)
+  const storedName: string | undefined = useSelector(selectPlayerName)
   const [playerName, setPlayerName] = useState<string>(storedName ?? '')
   const [message, setMessage] = useState<string>('')
 

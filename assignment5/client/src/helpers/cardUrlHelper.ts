@@ -1,5 +1,8 @@
 import { type Card } from '@domain/model/deck.ts'
 
+/**
+ * Returns the proper .svg URL associated with each card type, for display in the client.
+ */
 export function getCardUrl(card: Card): string {
   switch (card.type) {
     case 'WILD':

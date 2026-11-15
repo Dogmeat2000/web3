@@ -5,6 +5,9 @@ import type { GameCredentials, GameSettings, PublicGame } from '@domain/model/un
 
 const cardFields = `type color number`
 
+const playerFields = `playerId playerName hand { ${cardFields} } hasSaidUno hasDrawnCardInTurn`
+
+// The fields of the server's Game type in schema.graphql, which follow the functional domain's Game and Round.
 const gameFields = `
   id
   name
@@ -13,21 +16,21 @@ const gameFields = `
   version
   namedColor { playerId color }
   lastRound { roundsPlayed winner addedScore }
-  players
+  playerNames
   targetScore
   scores
   cardsPerPlayer
+  winner { ${playerFields} }
   currentRound {
-    players
-    hands { ${cardFields} }
+    players { ${playerFields} }
+    dealer { ${playerFields} }
     drawPile { ${cardFields} }
     discardPile { ${cardFields} }
-    currentColor
-    currentDirection
-    dealer
-    playerInTurn
-    saidUno
-    hasDrawn
+    activeCardColor
+    activePlayer { ${playerFields} }
+    playPassDirection
+    noOfCardsPlayerMustDraw
+    skipNextPlayer
   }
 `
 
