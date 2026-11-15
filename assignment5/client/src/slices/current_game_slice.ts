@@ -38,7 +38,7 @@ const current_game_reducers = {
 }
 
 export const current_game_slice = createSlice({
-  name: 'ongoingGame',
+  name: 'currentGame',
   initialState: init_state,
   reducers: current_game_reducers,
 })
@@ -46,9 +46,14 @@ export const current_game_slice = createSlice({
 /**
  * Returns the game this browser has joined or hosted, or undefined before that.
  */
-export const selectGame = (state: State): PublicGame | undefined => state.ongoingGame.game
+export const selectGame = (state: State): PublicGame | undefined => state.currentGame.game
 
 /**
  * Returns the playerId of the player using this browser in the ongoing game, or undefined before joining.
  */
-export const selectLocalPlayerId = (state: State): number | undefined => state.ongoingGame.localPlayerId
+export const selectLocalPlayerId = (state: State): number | undefined => state.currentGame.localPlayerId
+
+/**
+ * Returns the password used to connect to the current game, or undefined if player does not have a current game.
+ */
+export const selectGamePassword = (state: State): string | undefined => state.currentGame.password

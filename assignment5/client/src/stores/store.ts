@@ -7,14 +7,14 @@ import { current_game_slice, type CurrentGameState } from '@/slices/current_game
 export type State = {
   player: PlayerState
   pendingGame: PendingGameState
-  ongoingGame: CurrentGameState
+  currentGame: CurrentGameState
 }
 
 export const store = configureStore<State>({
   reducer: {
     player: player_slice.reducer,
     pendingGame: pending_game_slice.reducer,
-    ongoingGame: current_game_slice.reducer,
+    currentGame: current_game_slice.reducer,
   },
 })
 
