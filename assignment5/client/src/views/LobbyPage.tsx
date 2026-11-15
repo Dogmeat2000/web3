@@ -16,7 +16,7 @@ export default function LobbyPage() {
   const playerName: string | undefined = useSelector(selectPlayerName)
   const pendingCredentials: GameCredentials | undefined = useSelector(selectPendingCredentials)
 
-  // Redirect players back to the lobby page, if they tried accessing this endpoint without choosing a name.
+  // Redirect players back to the login page, if they tried accessing this endpoint without choosing a name.
   useEffect((): void => {
     if (playerName === undefined) {
       navigate('/', { replace: true })
