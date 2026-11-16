@@ -18,6 +18,7 @@ import CatchUnoThunk from '@/thunks/CatchUnoThunk.ts'
 import PlayerHand from '@/components/game/PlayerHand.tsx'
 import PlayCardThunk from '@/thunks/PlayCardThunk.ts'
 import ColorPicker from '@/components/game/ColorPicker.tsx'
+import { useBots } from '@/bots/useBots.ts'
 
 export default function GamePage() {
   const dispatch: Dispatch = useDispatch()
@@ -27,6 +28,7 @@ export default function GamePage() {
   const password: string | undefined = useSelector(selectGamePassword)
   const localPlayerId: number | undefined = useSelector(selectLocalPlayerId)
   const [pendingWild, setPendingWild] = useState<number | undefined>(undefined)
+  useBots(false)
 
   useEffect((): void => {
     if (playerName === undefined) {
@@ -54,7 +56,7 @@ export default function GamePage() {
   const isHost: boolean = localPlayerId === 0
   const myCards: readonly Card[] = round?.players[localPlayerId]?.hand ?? []
   const myPlayableCardsAtIndex: boolean[] = myCards.map((_card: Card, cardIndex: number) => {
-    return round !== undefined && Round.canPlay(cardIndex, round)
+    return isMyTurn && round !== undefined && Round.canPlay(cardIndex, round)
   })
 
   const drawCard = (): void => {
@@ -72,10 +74,11 @@ export default function GamePage() {
   }
 
   const playCard = (cardIndex: number): void => {
-    if ('color' in myCards[cardIndex]!) {
-      void dispatch(PlayCardThunk(localPlayerId, cardIndex)).catch((error: Error): void => console.error(error.message))
-    } else {
+    const card: Card = myCards[cardIndex]!
+    if (card.type === 'WILD' || card.type === 'WILD DRAW') {
       setPendingWild(cardIndex)
+    } else {
+      void dispatch(PlayCardThunk(localPlayerId, cardIndex)).catch((error: Error): void => console.error(error.message))
     }
   }
 
@@ -181,7 +184,7 @@ export default function GamePage() {
         {/* Show the Local Players' cards */}
         {round !== undefined && <PlayerHand cards={myCards} playables={myPlayableCardsAtIndex} onPlay={playCard}></PlayerHand>}
 
-        {/* Choosing a colour after playing a Wild card. */}
+        {/* Choosing a color after playing a Wild card. */}
         {pendingWild !== undefined && <ColorPicker onChoose={chooseColor} />}
 
         {/* End of a round. */}

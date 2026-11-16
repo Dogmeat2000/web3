@@ -1,112 +1,46 @@
-import { onUnmounted, watch, type Ref } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useGameStore } from '@/stores/gameStore.ts'
-import type { Color, Card } from '@domain/model/deck.ts'
-import type { Round } from '@domain/model/round.ts'
-import type { PublicGame } from '@domain/model/uno.ts'
-
-type Action = { type: 'draw' } | { type: 'play'; cardIndex: number; namedColor?: Color }
+import { useEffect, useRef } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { Subject, type Subscription } from 'rxjs'
+import type { Dispatch } from '@/stores/store.ts'
+import { selectGame, selectLocalPlayerId } from '@/slices/current_game_slice.ts'
+import type { PublicGame } from '@domain/model/uno.dto.ts'
+import PlayBotsThunk from '@/thunks/PlayBotsThunk.ts'
 
 /**
- * Plays bots in place of players on the game creator (hosts) browser.
+ * Plays bots in place of the missing players, in the host's browser only.
  *
- * @param paused The bots take a break for as long as this is true.
+ * @param paused - tells whether the bots take a break, such as between rounds.
  */
-export function useBots(paused: Ref<boolean>): void {
-  const gameStore = useGameStore()
-  const { game, hostedGame, localPlayerId } = storeToRefs(gameStore)
-  const workers = new Map<number, Worker>()
-  let running: boolean = true
-  let playing: boolean = false
+export function useBots(paused: boolean): void {
+  const dispatch: Dispatch = useDispatch()
+  const game: PublicGame | undefined = useSelector(selectGame)
+  const localPlayerId: number | undefined = useSelector(selectLocalPlayerId)
+  const workers = useRef<Map<number, Worker>>(new Map())
+  const games = useRef<Subject<PublicGame | undefined>>(new Subject<PublicGame | undefined>())
 
-  /**
-   * Spawns a worker for each position in the game not filed by a human player, when the host starts the game.
-   */
-  function startWorkers(): void {
-    const currentGame: PublicGame | null = hostedGame.value
+  // Let the bots play until the page closes:
+  useEffect((): (() => void) => {
+    const botWorkers: Map<number, Worker> = workers.current
+    const subscription: Subscription = dispatch(PlayBotsThunk(games.current, botWorkers))
+    return (): void => {
+      subscription.unsubscribe()
+      botWorkers.forEach((worker: Worker): void => worker.terminate())
+      botWorkers.clear()
+    }
+  }, [dispatch])
 
-    // There must be workers, game must be active and this script must be run in the hosts browser (i.e. playerId = 0).
-    if (workers.size > 0 || currentGame?.status !== 'ACTIVE' || localPlayerId.value !== 0) {
+  // Start a worker for each empty player slot:
+  useEffect((): void => {
+    if (workers.current.size > 0 || game?.status !== 'ACTIVE' || localPlayerId !== 0) {
       return
     }
-
-    // The people who joined sit in the first player positions. Bots are only created for the un-filled positions.
-    // TODO: I might consider randomly assigning the character a new joining player receives, to increase the fun/challenge a bit.
-    for (let playerId = currentGame.joinedPlayers.length; playerId < currentGame.players.length; playerId++) {
-      workers.set(playerId, new Worker(new URL('./bot.worker.ts', import.meta.url), { type: 'module' }))
+    for (let playerId: number = game.joinedPlayers.length; playerId < game.playerNames.length; playerId++) {
+      workers.current.set(playerId, new Worker(new URL('./bot.worker.ts', import.meta.url), { type: 'module' }))
     }
-  }
+  }, [game, localPlayerId])
 
-  function askBot(worker: Worker, hand: Card[], playable: number[]): Promise<Action> {
-    return new Promise((resolve): void => {
-      worker.onmessage = (event: MessageEvent<Action>): void => resolve(event.data)
-      worker.postMessage({ hand, playable })
-    })
-  }
-
-  /**
-   * Plays for the bots, for as long as one of them is in turn.
-   */
-  async function play(): Promise<void> {
-    if (playing) {
-      return
-    }
-    playing = true
-
-    try {
-      while (running && !paused.value) {
-        const round: Round | undefined = game.value?.currentRound()
-        const playerId: number | undefined = round?.playerInTurn()
-        const worker: Worker | undefined = playerId === undefined ? undefined : workers.get(playerId)
-
-        if (!round || playerId === undefined || !worker) {
-          // It's a human players turn, or the game is over.
-          break
-        }
-
-        const hand: Card[] = round.playerHand(playerId)
-        const playable: number[] = hand.map((_: Card, index: number): number => index).filter((index: number): boolean => round.canPlay(index))
-        const action: Action = await askBot(worker, hand, playable)
-
-        // Make sure nothing changed in the round (i.e. player caught another player), that could invalidate this bot's decision:
-        const current: Round | undefined = game.value?.currentRound()
-        if (!running || current?.playerInTurn() !== playerId || JSON.stringify(current.playerHand(playerId)) !== JSON.stringify(hand)) {
-          continue
-        }
-
-        if (Math.floor(Math.random() * 100) > 40) {
-          // Strategy here is just to accuse everyone, since the domain ensures only the previous player can successfully be accused.
-          // 60% Chance of catching a player who didn't say UNO
-          await gameStore.catchUno(playerId)
-        }
-
-        if (action.type === 'draw') {
-          await gameStore.drawCard(playerId)
-        } else {
-          if (hand.length === 2 && Math.floor(Math.random() * 100) > 20) {
-            // 80% Chance of saying Uno
-            await gameStore.sayUno(playerId)
-          }
-          await gameStore.playCard(action.cardIndex, action.namedColor, playerId)
-        }
-      }
-    } finally {
-      playing = false
-    }
-  }
-
-  watch(
-    [game, paused],
-    (): void => {
-      startWorkers()
-      void play()
-    },
-    { immediate: true },
-  )
-
-  onUnmounted((): void => {
-    running = false
-    workers.forEach((worker: Worker): void => worker.terminate())
-    workers.clear()
-  })
+  // Update bots as changes happen:
+  useEffect((): void => {
+    games.current.next(paused ? undefined : game)
+  }, [game, paused])
 }
