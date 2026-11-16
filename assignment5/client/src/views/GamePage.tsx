@@ -4,19 +4,20 @@ import { useNavigate } from 'react-router'
 import type { PublicGame } from '@domain/model/uno.dto.ts'
 import { selectPlayerName } from '@/slices/player_slice.ts'
 import { selectGame, selectGamePassword, selectLocalPlayerId } from '@/slices/current_game_slice.ts'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import PlayerAvatarCard from '@/components/game/PlayerAvatarCard.tsx'
 import { standardShuffler } from '@domain/utils/random_utils.ts'
 import * as Round from '@domain/model/round.ts'
 import DrawThunk from '@/thunks/DrawThunk.ts'
 import cardBack from '@/assets/cards/backs/01-quarters.svg'
-import { Card } from '@domain/model/deck.ts'
+import { Card, Color } from '@domain/model/deck.ts'
 import { getCardUrl } from '@/helpers/cardUrlHelper.ts'
 import StartGameThunk from '@/thunks/StartGameThunk.ts'
 import SayUnoThunk from '@/thunks/SayUnoThunk.ts'
 import CatchUnoThunk from '@/thunks/CatchUnoThunk.ts'
 import PlayerHand from '@/components/game/PlayerHand.tsx'
 import PlayCardThunk from '@/thunks/PlayCardThunk.ts'
+import ColorPicker from '@/components/game/ColorPicker.tsx'
 
 export default function GamePage() {
   const dispatch: Dispatch = useDispatch()
@@ -25,6 +26,7 @@ export default function GamePage() {
   const game: PublicGame | undefined = useSelector(selectGame)
   const password: string | undefined = useSelector(selectGamePassword)
   const localPlayerId: number | undefined = useSelector(selectLocalPlayerId)
+  const [pendingWild, setPendingWild] = useState<number | undefined>(undefined)
 
   useEffect((): void => {
     if (playerName === undefined) {
@@ -41,7 +43,6 @@ export default function GamePage() {
   }
 
   const seatingPriority = [3, 4, 5, 6, 7, 8, 9, 10, 1, 2]
-  //const round: RoundData | undefined = game.currentRound ?? undefined
   const round: Round.Round | undefined = game.currentRound !== undefined ? { ...game.currentRound, shuffler: standardShuffler } : undefined
   const nextPlayerId: number | undefined =
     round?.activePlayer === undefined || round.activePlayer === null
@@ -74,7 +75,14 @@ export default function GamePage() {
     if ('color' in myCards[cardIndex]!) {
       void dispatch(PlayCardThunk(localPlayerId, cardIndex)).catch((error: Error): void => console.error(error.message))
     } else {
-      //setPendingWild(cardIndex)
+      setPendingWild(cardIndex)
+    }
+  }
+
+  const chooseColor = (namedColor: Color): void => {
+    if (pendingWild !== undefined) {
+      void dispatch(PlayCardThunk(localPlayerId, pendingWild, namedColor)).catch((error: Error): void => console.error(error.message))
+      setPendingWild(undefined)
     }
   }
 
@@ -174,7 +182,7 @@ export default function GamePage() {
         {round !== undefined && <PlayerHand cards={myCards} playables={myPlayableCardsAtIndex} onPlay={playCard}></PlayerHand>}
 
         {/* Choosing a colour after playing a Wild card. */}
-        {/*<ColorPicker v-if="pendingWild !== null" @choose="onColorChoose" />*/}
+        {pendingWild !== undefined && <ColorPicker onChoose={chooseColor} />}
 
         {/* End of a round. */}
         {/*<ScoreBoard
