@@ -36,7 +36,8 @@ function bestColor(hand: readonly Card[]): Color {
  */
 function decide(game: PublicGame): BotAction {
   const round: Round.Round = { ...game.currentRound!, shuffler: standardShuffler }
-  const { hand }: Player = round.activePlayer!
+  // Bot Logic: Read the hand from the list of players:
+  const { hand }: Player = round.players[round.activePlayer!.playerId]!
 
   // Bot Logic: Find the cards on the hand that can legally be played.
   const playable: number[] = hand.map((_card: Card, cardIndex: number): number => cardIndex).filter((cardIndex: number): boolean => Round.canPlay(cardIndex, round))

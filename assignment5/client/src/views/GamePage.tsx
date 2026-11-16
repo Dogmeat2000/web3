@@ -1,7 +1,7 @@
 import type { Dispatch } from '@/stores/store.ts'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
-import type { PublicGame } from '@domain/model/uno.dto.ts'
+import type { PublicGame, RoundResult } from '@domain/model/uno.dto.ts'
 import { selectPlayerName } from '@/slices/player_slice.ts'
 import { selectGame, selectGamePassword, selectLocalPlayerId } from '@/slices/current_game_slice.ts'
 import { useEffect, useState } from 'react'
@@ -19,6 +19,9 @@ import PlayerHand from '@/components/game/PlayerHand.tsx'
 import PlayCardThunk from '@/thunks/PlayCardThunk.ts'
 import ColorPicker from '@/components/game/ColorPicker.tsx'
 import { useBots } from '@/bots/useBots.ts'
+import { Player } from '@domain/model/player.ts'
+import { ScoreRow } from '@/models/ScoreRow.ts'
+import ScoreBoard from '@/components/game/ScoreBoard.tsx'
 
 export default function GamePage() {
   const dispatch: Dispatch = useDispatch()
@@ -28,6 +31,12 @@ export default function GamePage() {
   const password: string | undefined = useSelector(selectGamePassword)
   const localPlayerId: number | undefined = useSelector(selectLocalPlayerId)
   const [pendingWild, setPendingWild] = useState<number | undefined>(undefined)
+  const [dismissedRoundScores, setDismissedRoundScores] = useState<number>(game?.lastRound?.roundsPlayed ?? 0)
+
+  // The round that just ended. Its scoreboard is shown in every browser, until it is closed there.
+  const roundResult: RoundResult | undefined = game?.lastRound != null && game.lastRound.roundsPlayed > dismissedRoundScores ? game.lastRound : undefined
+
+  // Bots run on the host player's browser. They are paused between rounds.
   useBots(false)
 
   useEffect((): void => {
@@ -45,7 +54,7 @@ export default function GamePage() {
   }
 
   const seatingPriority = [3, 4, 5, 6, 7, 8, 9, 10, 1, 2]
-  const round: Round.Round | undefined = game.currentRound !== undefined ? { ...game.currentRound, shuffler: standardShuffler } : undefined
+  const round: Round.Round | undefined = game.currentRound != null ? { ...game.currentRound, shuffler: standardShuffler } : undefined
   const nextPlayerId: number | undefined =
     round?.activePlayer === undefined || round.activePlayer === null
       ? undefined
@@ -58,6 +67,19 @@ export default function GamePage() {
   const myPlayableCardsAtIndex: boolean[] = myCards.map((_card: Card, cardIndex: number) => {
     return isMyTurn && round !== undefined && Round.canPlay(cardIndex, round)
   })
+  const winner: Player | undefined = game.winner ?? undefined
+
+  // All players, with the highest score first.
+  const scoreRows: ScoreRow[] = game.playerNames
+    .map((name: string, playerId: number): ScoreRow => ({ playerId, name, score: game.scores[playerId] ?? 0, isLocalPlayer: playerId === localPlayerId }))
+    .sort((a: ScoreRow, b: ScoreRow): number => b.score - a.score)
+
+  const continueToNextRound = (): void => {
+    setDismissedRoundScores(game.lastRound?.roundsPlayed ?? 0)
+  }
+  const exitGame = (): void => {
+    void navigate('/lobby')
+  }
 
   const drawCard = (): void => {
     void dispatch(DrawThunk(localPlayerId)).catch((error: Error): void => console.error(error.message))
@@ -188,19 +210,20 @@ export default function GamePage() {
         {pendingWild !== undefined && <ColorPicker onChoose={chooseColor} />}
 
         {/* End of a round. */}
-        {/*<ScoreBoard
-      v-if="roundResult && winner === undefined"
-      title="Round Winner"
-:headline="game.player(roundResult.winner)"
-    buttonLabel="Play Next Round"
-  :rows="scoreRows"
-  :winnerId="roundResult.winner"
-  :gained="roundResult.addedScore"
-  @close="onContinueClick"
-      />*/}
+        {roundResult !== undefined && winner === undefined && (
+          <ScoreBoard
+            title="Round Winner"
+            headline={game.playerNames[roundResult.winner] ?? ''}
+            buttonLabel="Play Next Round"
+            rows={scoreRows}
+            winnerId={roundResult.winner}
+            gained={roundResult.addedScore}
+            onClose={continueToNextRound}
+          />
+        )}
 
         {/* End of the game. */}
-        {/*<ScoreBoard v-if="winner !== undefined" title="Game Over" :headline="`Winner: ${game.player(winner)}`" buttonLabel="Exit" :rows="scoreRows" :winnerId="winner" @close="onExitClick" />*/}
+        {winner !== undefined && <ScoreBoard title="Game Over" headline={`Winner: ${winner.playerName}`} buttonLabel="Exit" rows={scoreRows} winnerId={winner.playerId} onClose={exitGame} />}
       </div>
     </main>
   )

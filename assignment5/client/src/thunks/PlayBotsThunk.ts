@@ -16,10 +16,19 @@ export type BotAction = ({ type: 'draw' } | { type: 'play'; cardIndex: number; n
 }
 
 /**
+ * Returns the player in turn in the provided game, taken from the round's list of players.
+ * The round's activePlayer is a copy from the start of the turn, so it does not include cards drawn since.
+ */
+const playerInTurn = (game: PublicGame | undefined): Player | undefined => {
+  const playerId: number | undefined = game?.currentRound?.activePlayer?.playerId
+  return playerId === undefined ? undefined : game?.currentRound?.players[playerId]
+}
+
+/**
  * Returns the player in turn in the provided game, if that player is a bot. Otherwise, returns undefined.
  */
 const botInTurn = (workers: ReadonlyMap<number, Worker>, game: PublicGame | undefined): Player | undefined => {
-  const player: Player | undefined = game?.status === 'ACTIVE' ? game.currentRound?.activePlayer : undefined
+  const player: Player | undefined = game?.status === 'ACTIVE' ? playerInTurn(game) : undefined
   return player !== undefined && workers.has(player.playerId) ? player : undefined
 }
 
@@ -36,8 +45,8 @@ const onlyBotTurns =
  * This happens when a bot only says UNO or catches another player, which must not make it decide again.
  */
 const isSameTurn = (previous: PublicGame | undefined, next: PublicGame | undefined): boolean => {
-  const previousPlayer: Player | undefined = previous?.currentRound?.activePlayer
-  const nextPlayer: Player | undefined = next?.currentRound?.activePlayer
+  const previousPlayer: Player | undefined = playerInTurn(previous)
+  const nextPlayer: Player | undefined = playerInTurn(next)
   const isSamePlayer: boolean = previousPlayer?.playerId === nextPlayer?.playerId
   const isSameHand: boolean = JSON.stringify(previousPlayer?.hand) === JSON.stringify(nextPlayer?.hand)
   return isSamePlayer && isSameHand
