@@ -1,7 +1,7 @@
 import type { Dispatch } from '@/stores/store.ts'
 import { useDispatch, useSelector } from 'react-redux'
 import { useNavigate } from 'react-router'
-import type { PublicGame, RoundData } from '@domain/model/uno.dto.ts'
+import type { PublicGame } from '@domain/model/uno.dto.ts'
 import { selectPlayerName } from '@/slices/player_slice.ts'
 import { selectGame, selectGamePassword, selectLocalPlayerId } from '@/slices/current_game_slice.ts'
 import { useEffect } from 'react'
@@ -15,6 +15,8 @@ import { getCardUrl } from '@/helpers/cardUrlHelper.ts'
 import StartGameThunk from '@/thunks/StartGameThunk.ts'
 import SayUnoThunk from '@/thunks/SayUnoThunk.ts'
 import CatchUnoThunk from '@/thunks/CatchUnoThunk.ts'
+import PlayerHand from '@/components/game/PlayerHand.tsx'
+import PlayCardThunk from '@/thunks/PlayCardThunk.ts'
 
 export default function GamePage() {
   const dispatch: Dispatch = useDispatch()
@@ -39,15 +41,20 @@ export default function GamePage() {
   }
 
   const seatingPriority = [3, 4, 5, 6, 7, 8, 9, 10, 1, 2]
-  const round: RoundData | undefined = game.currentRound ?? undefined
+  //const round: RoundData | undefined = game.currentRound ?? undefined
+  const round: Round.Round | undefined = game.currentRound !== undefined ? { ...game.currentRound, shuffler: standardShuffler } : undefined
   const nextPlayerId: number | undefined =
     round?.activePlayer === undefined || round.activePlayer === null
       ? undefined
       : (round.activePlayer.playerId + (round.playPassDirection === 'counterclockwise' ? -1 : 1) + round.players.length) % round.players.length
   const isMyTurn: boolean = game.status === 'ACTIVE' && round?.activePlayer?.playerId === localPlayerId
-  const canDraw: boolean = isMyTurn && round !== undefined && !Round.canPlayAny({ ...round, shuffler: standardShuffler })
+  const canDraw: boolean = isMyTurn && round !== undefined && !Round.canPlayAny(round)
   const topCard: Card | undefined = round?.discardPile.at(-1)
   const isHost: boolean = localPlayerId === 0
+  const myCards: readonly Card[] = round?.players[localPlayerId]?.hand ?? []
+  const myPlayableCardsAtIndex: boolean[] = myCards.map((_card: Card, cardIndex: number) => {
+    return round !== undefined && Round.canPlay(cardIndex, round)
+  })
 
   const drawCard = (): void => {
     void dispatch(DrawThunk(localPlayerId)).catch((error: Error): void => console.error(error.message))
@@ -61,6 +68,14 @@ export default function GamePage() {
 
   const catchUno = (): void => {
     void dispatch(CatchUnoThunk(localPlayerId)).catch((error: Error): void => console.error(error.message))
+  }
+
+  const playCard = (cardIndex: number): void => {
+    if ('color' in myCards[cardIndex]!) {
+      void dispatch(PlayCardThunk(localPlayerId, cardIndex)).catch((error: Error): void => console.error(error.message))
+    } else {
+      //setPendingWild(cardIndex)
+    }
   }
 
   return (
@@ -156,7 +171,7 @@ export default function GamePage() {
         </p>
 
         {/* Show the Local Players' cards */}
-        {/*<PlayerHand v-if="round" :cards="hand" :playable="playable" @play="onCardPlay" />*/}
+        {round !== undefined && <PlayerHand cards={myCards} playables={myPlayableCardsAtIndex} onPlay={playCard}></PlayerHand>}
 
         {/* Choosing a colour after playing a Wild card. */}
         {/*<ColorPicker v-if="pendingWild !== null" @choose="onColorChoose" />*/}

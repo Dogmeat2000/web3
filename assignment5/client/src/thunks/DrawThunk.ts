@@ -4,7 +4,7 @@ import type { Dispatch, GetState } from '@/stores/store'
 import type { PublicGame } from '@domain/model/uno.dto.ts'
 
 /**
- * Returns a thunk that draws a card for the specified player in the current game and stores the server's answer.
+ * Returns a thunk that draws a card for the specified player in the current game.
  */
 export default function DrawThunk(playerId: number): (dispatch: Dispatch, getState: GetState) => Promise<void> {
   return async (dispatch: Dispatch, getState: GetState): Promise<void> => {
