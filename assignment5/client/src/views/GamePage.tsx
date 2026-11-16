@@ -6,6 +6,15 @@ import { selectPlayerName } from '@/slices/player_slice.ts'
 import { selectGame, selectGamePassword, selectLocalPlayerId } from '@/slices/current_game_slice.ts'
 import { useEffect } from 'react'
 import PlayerAvatarCard from '@/components/game/PlayerAvatarCard.tsx'
+import { standardShuffler } from '@domain/utils/random_utils.ts'
+import * as Round from '@domain/model/round.ts'
+import DrawThunk from '@/thunks/DrawThunk.ts'
+import cardBack from '@/assets/cards/backs/01-quarters.svg'
+import { Card } from '@domain/model/deck.ts'
+import { getCardUrl } from '@/helpers/cardUrlHelper.ts'
+import StartGameThunk from '@/thunks/StartGameThunk.ts'
+import SayUnoThunk from '@/thunks/SayUnoThunk.ts'
+import CatchUnoThunk from '@/thunks/CatchUnoThunk.ts'
 
 export default function GamePage() {
   const dispatch: Dispatch = useDispatch()
@@ -23,7 +32,7 @@ export default function GamePage() {
       // Redirect players back to the lobby page, if no game was joined.
       navigate('/lobby', { replace: true })
     }
-  }, [playerName, game, navigate])
+  }, [playerName, password, localPlayerId, navigate])
 
   if (game === undefined || localPlayerId === undefined) {
     return <main>Loading game…</main>
@@ -35,6 +44,24 @@ export default function GamePage() {
     round?.activePlayer === undefined || round.activePlayer === null
       ? undefined
       : (round.activePlayer.playerId + (round.playPassDirection === 'counterclockwise' ? -1 : 1) + round.players.length) % round.players.length
+  const isMyTurn: boolean = game.status === 'ACTIVE' && round?.activePlayer?.playerId === localPlayerId
+  const canDraw: boolean = isMyTurn && round !== undefined && !Round.canPlayAny({ ...round, shuffler: standardShuffler })
+  const topCard: Card | undefined = round?.discardPile.at(-1)
+  const isHost: boolean = localPlayerId === 0
+
+  const drawCard = (): void => {
+    void dispatch(DrawThunk(localPlayerId)).catch((error: Error): void => console.error(error.message))
+  }
+  const startGame = (): void => {
+    void dispatch(StartGameThunk()).catch((error: Error): void => console.error(error.message))
+  }
+  const sayUno = (): void => {
+    void dispatch(SayUnoThunk(localPlayerId)).catch((error: Error): void => console.error(error.message))
+  }
+
+  const catchUno = (): void => {
+    void dispatch(CatchUnoThunk(localPlayerId)).catch((error: Error): void => console.error(error.message))
+  }
 
   return (
     <main className="stage-frame" id="game-screen">
@@ -68,35 +95,56 @@ export default function GamePage() {
         </ol>
 
         {/* The table */}
-        {/*<p v-if="status === 'PENDING'" className="turn" role="status">Waiting for Host to start Game</p>*/}
-        {/*<p v-else-if="round" className="turn" role="status">
-          Turn: <strong>{ game.player(round.playerInTurn()!) }</strong>
-        </p>*/}
-        {/*<p v-else className="turn" role="status">Game is Over</p>*/}
+        <div className="turn" role="status">
+          {/* Show Pending status if game has not been started */}
+          {game.status === 'PENDING' && <p>Waiting for Host to start the Game</p>}
+
+          {/* Show active players name, if game is ongoing */}
+          {game.status !== 'PENDING' && round !== undefined && (
+            <p>
+              Turn: <strong>{round?.activePlayer?.playerName}</strong>
+            </p>
+          )}
+
+          {/* Show Game Over, when game has ended */}
+          {game.status !== 'PENDING' && round === undefined && <p>Game is Over</p>}
+        </div>
 
         {/* Clicking the draw pile draws a card. */}
-        {/*<button className="pile pile--draw" type="button" :disabled="!canDraw" @click="gameStore.drawCard()">
-        <img src="@/assets/cards/backs/01-quarters.svg" alt="" />
-        <span className="pile__label">Draw</span>
-      </button>*/}
+        <button className="pile pile--draw" type="button" disabled={!canDraw} onClick={drawCard}>
+          <img src={cardBack} alt="" />
+          <span className="pile__label">Draw</span>
+        </button>
 
         {/* The top card of the discard pile. */}
-        {/*<div className="pile pile--discard">
-      <img v-if="topCard" :src="getCardUrl(topCard)" alt="" />
-      <span className="pile__label">Discard</span>
-    </div>*/}
+        <div className="pile pile--discard">
+          {topCard !== undefined && <img src={getCardUrl(topCard)} alt="" />}
+          <span className="pile__label">Discard</span>
+        </div>
 
         {/* Start Game button is shown to the host */}
-        {/*<div v-if="isHost && status === 'PENDING'" className="start-game">
-      <button className="say-uno say-uno--start" type="button" @click="gameStore.startGame()">Start Game</button>
-    <p className="start-game__note">Starting locks this game. No one else can join.</p>
-  </div>*/}
+        {isHost && game.status === 'PENDING' && (
+          <div className="start-game">
+            <button className="say-uno say-uno--start" type="button" onClick={startGame}>
+              Start Game
+            </button>
+            <p className="start-game__note">Starting locks this game. No one else can join.</p>
+          </div>
+        )}
 
         {/* Player button to say 'UNO' with */}
-        {/*<button v-if="isMyTurn" className="say-uno" type="button" @click="gameStore.sayUno()">Say UNO</button>*/}
+        {isMyTurn && (
+          <button className="say-uno" type="button" onClick={sayUno}>
+            Say UNO
+          </button>
+        )}
 
         {/* Player button to catch someone who forgot to say 'UNO' */}
-        {/*<button v-if="status === 'ACTIVE' && round" className="say-uno say-uno--catch" type="button" @click="gameStore.catchUno()">Catch!</button>*/}
+        {game.status === 'ACTIVE' && round !== undefined && (
+          <button className="say-uno say-uno--catch" type="button" onClick={catchUno}>
+            Catch!
+          </button>
+        )}
 
         {/* Local Players side of the table */}
         <p className="you-bar">
