@@ -37,7 +37,7 @@ export default function GamePage() {
   const roundResult: RoundResult | undefined = game?.lastRound != null && game.lastRound.roundsPlayed > dismissedRoundScores ? game.lastRound : undefined
 
   // Bots run on the host player's browser. They are paused between rounds.
-  useBots(false)
+  useBots(roundResult !== undefined)
 
   useEffect((): void => {
     if (playerName === undefined) {

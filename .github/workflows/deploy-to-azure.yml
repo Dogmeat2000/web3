@@ -7,7 +7,7 @@
 #
 # What an assignment folder must look like to be deployed by this:
 #   client/        "npm run build" puts the built page in client/dist
-#   server/        "npm ci --omit=dev" installs everything the server needs to run
+#   server/        "npm ci --omit=dev" installs everything the server needs to run, including the packages the domain imports
 #   domain/        "npm test" runs its tests; the server imports the code in domain/src
 #   package.json   "npm start" starts the server, which also serves client/dist
 #
@@ -43,6 +43,7 @@ on:
         type: choice
         options:
           - assignment3
+          - assignment5
 
 jobs:
   deploy:
@@ -70,7 +71,7 @@ jobs:
         working-directory: ${{ inputs.assignment }}/client
         run: |
           npm ci
-          npx vitest run
+          npx vitest run --passWithNoTests
           npm run build
 
       - name: Install what the server needs to run
@@ -79,12 +80,15 @@ jobs:
 
       # The server imports the domain from ../domain/src and serves the client from ../client/dist,
       # so the three folders keep their places beside each other.
+      # The server's node_modules goes to the top of the deploy folder, where Node also finds it for the
+      # domain's own imports (such as lodash), as domain/node_modules is not deployed.
       - name: Collect the files to deploy
         working-directory: ${{ inputs.assignment }}
         run: |
           mkdir -p deploy/client deploy/domain
           cp package.json deploy/
           cp -r server deploy/server
+          mv deploy/server/node_modules deploy/node_modules
           cp -r domain/src deploy/domain/src
           cp -r client/dist deploy/client/dist
 

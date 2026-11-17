@@ -1,4 +1,4 @@
-import type { Dispatch } from '@reduxjs/toolkit'
+import type { Dispatch } from '@/stores/store'
 import type { NavigateFunction } from 'react-router'
 import { player_slice } from '@/slices/player_slice'
 
