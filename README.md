@@ -7,7 +7,11 @@ Persistence is done in mongodb.
 
 <img width="3441" height="1912" alt="image" src="https://github.com/user-attachments/assets/4e048f5f-dd1c-46d2-a7a2-daf581a242a8" />
 
-Play it here: [link](https://uno3-d5h6hgh0f3dagtdc.germanywestcentral-01.azurewebsites.net/)
+Assignment 3: Object oriented version with vue.js -> Play it here: [link](https://uno3-d5h6hgh0f3dagtdc.germanywestcentral-01.azurewebsites.net/)
+
+Assignment 5: Functional version with react/rxjs/redux -> Play it here: [link](https://uno5-h9edaxdmfxaxhubg.germanywestcentral-01.azurewebsites.net/)
+
+NOTE: Please give each service above time to start, first time you access them. It may take 30 seconds for the containers to become available.
 
 <br><br><br><br>
 
