@@ -26,7 +26,7 @@ export default function HostPage() {
       // Redirect players back to the lobby page, if they tried accessing this endpoint without setting game name and password.
       navigate('/lobby', { replace: true })
     }
-  }, [playerName, pendingCredentials, navigate])
+  }, [playerName, pendingCredentials, navigate, isHosting])
 
   const [gameSettings, setGameSettings] = useState<GameSettings>({
     name: pendingCredentials?.name ?? '',
