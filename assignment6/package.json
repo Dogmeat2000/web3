@@ -12,7 +12,7 @@
     "start:server": "npm start --prefix server",
     "start:app": "npm start --prefix uno-ssr-app"
   },
-  "devDependencies": {
+  "dependencies": {
     "npm-run-all2": "^9.0.3"
   }
 }

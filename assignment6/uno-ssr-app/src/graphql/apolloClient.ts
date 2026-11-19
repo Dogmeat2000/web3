@@ -3,7 +3,10 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { createClient } from 'graphql-ws'
 
-const httpUrl: string = process.env.NEXT_PUBLIC_GRAPHQL_URL ?? 'http://localhost:4000/graphql'
+// The browser uses the page's own address, which next.config.ts forwards to the GraphQL server.
+// The Next.js server, which renders the pages, calls the GraphQL server directly.
+const httpUrl: string =
+  typeof window === 'undefined' ? `http://localhost:${process.env.GRAPHQL_PORT ?? 4000}/graphql` : `${window.location.origin}/graphql`
 const wsUrl: string = httpUrl.replace('http', 'ws') // http becomes ws, and https becomes wss
 
 const httpLink = new HttpLink({

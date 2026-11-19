@@ -1,0 +1,80 @@
+# 100% AI generated!
+# Deploys assignment 6 to its own Azure App Service, whenever something in assignment6/ changes on main.
+# It can also be started by hand from the Actions page: open "Deploy assignment 6" and choose "Run workflow".
+#
+# Needs two settings in the GitHub repository (Settings > Secrets and variables > Actions):
+#   variable  AZURE_WEBAPP_NAME_ASSIGNMENT6       the name of the App Service
+#   secret    AZURE_PUBLISH_PROFILE_ASSIGNMENT6   the content of the publish profile downloaded from that App Service
+#
+# How the app runs on Azure: "npm start" in the deployed folder starts two processes with run-p.
+#   - The Next.js app listens on the port Azure gives it in PORT, and is the only public one.
+#   - The GraphQL server listens on GRAPHQL_PORT (4000 when unset), inside the App Service only.
+#     The Next.js app forwards /graphql to it (see uno-ssr-app/next.config.ts), web sockets included.
+#
+# Unlike assignments 3 and 5, this does not use deploy-to-azure.yml: the client is a Next.js app with its own
+# server, not a folder of built files that the GraphQL server serves.
+name: Deploy assignment 6
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assignment6/**'
+      - '.github/workflows/deploy-assignment6.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    # A newer deploy waits for the one that is running.
+    concurrency:
+      group: deploy-assignment6
+      cancel-in-progress: false
+
+    defaults:
+      run:
+        working-directory: assignment6
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Test the domain
+        run: |
+          npm ci --prefix domain
+          npm test --prefix domain
+
+      - name: Build the Next.js app
+        run: |
+          npm ci --prefix uno-ssr-app
+          npm run build --prefix uno-ssr-app
+
+      # The deployed folder keeps the layout of assignment6/, as the server and the app import ../domain/src.
+      # Each part gets a production install of its own; the domain only needs lodash, which has no dependencies.
+      - name: Collect the files to deploy
+        run: |
+          mkdir -p deploy/domain/node_modules deploy/uno-ssr-app
+          cp package.json package-lock.json deploy/
+          npm ci --omit=dev --prefix deploy
+
+          cp -r domain/src deploy/domain/src
+          cp -r domain/node_modules/lodash deploy/domain/node_modules/lodash
+
+          cp -r server deploy/server
+          npm ci --omit=dev --prefix deploy/server
+
+          cp uno-ssr-app/package.json uno-ssr-app/package-lock.json uno-ssr-app/next.config.ts deploy/uno-ssr-app/
+          cp -r uno-ssr-app/public uno-ssr-app/.next deploy/uno-ssr-app/
+          rm -rf deploy/uno-ssr-app/.next/cache deploy/uno-ssr-app/.next/dev
+          npm ci --omit=dev --prefix deploy/uno-ssr-app
+
+      - name: Deploy to Azure
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME_ASSIGNMENT6 }}
+          publish-profile: ${{ secrets.AZURE_PUBLISH_PROFILE_ASSIGNMENT6 }}
+          package: assignment6/deploy

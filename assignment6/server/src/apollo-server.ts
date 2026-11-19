@@ -24,7 +24,7 @@ const __filename: string = fileURLToPath(import.meta.url)
 const __dirname: string = path.dirname(__filename)
 
 async function startServer(store: GameStore): Promise<void> {
-    const port: number = Number(process.env.PORT ?? 4000)
+    const port: number = Number(process.env.GRAPHQL_PORT ?? 4000)
     const model: GameApi = createGameApi(store, { shuffler: standardShuffler, randomizer: standardRandomizer })
     const pubsub = new PubSub()
 

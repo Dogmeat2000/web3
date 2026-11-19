@@ -11,6 +11,8 @@ Assignment 3: Object oriented version with vue.js -> Play it here: [link](https:
 
 Assignment 5: Functional version with react/rxjs/redux -> Play it here: [link](https://uno5-h9edaxdmfxaxhubg.germanywestcentral-01.azurewebsites.net/)
 
+Assignment 6: Server-Side Rendering with next.js + react -> Play it here: [link](https://uno6-fvgsfpavb8adf9ht.germanywestcentral-01.azurewebsites.net)
+
 NOTE: Please give each service above time to start, first time you access them. It may take 30 seconds for the containers to become available.
 
 <br><br><br><br>
