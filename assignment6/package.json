@@ -1,0 +1,18 @@
+{
+  "name": "uno-assignment6",
+  "private": true,
+  "description": "Runs the UNO GraphQL server and the Next.js app side by side. Run npm run setup once after cloning.",
+  "scripts": {
+    "setup": "npm install && npm install --prefix domain && npm install --prefix server && npm install --prefix uno-ssr-app",
+    "dev": "run-p --print-label dev:server dev:app",
+    "dev:server": "npm run dev --prefix server",
+    "dev:app": "npm run dev --prefix uno-ssr-app",
+    "build": "npm run build --prefix uno-ssr-app",
+    "start": "run-p --print-label start:server start:app",
+    "start:server": "npm start --prefix server",
+    "start:app": "npm start --prefix uno-ssr-app"
+  },
+  "devDependencies": {
+    "npm-run-all2": "^9.0.3"
+  }
+}

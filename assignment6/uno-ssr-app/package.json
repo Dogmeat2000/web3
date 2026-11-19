@@ -9,12 +9,20 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@apollo/client": "^4.3.8",
+    "@reduxjs/toolkit": "^2.15.0",
+    "graphql": "^16.15.0",
+    "graphql-ws": "^6.4.3",
+    "js-cookie": "^3.0.8",
     "next": "16.4.6",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "react-redux": "^9.3.1",
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "4.3.3",
+    "@types/js-cookie": "^3.0.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

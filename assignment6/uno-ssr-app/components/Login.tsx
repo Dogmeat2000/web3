@@ -1,27 +1,30 @@
-import { useState, type SubmitEvent } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { useNavigate } from 'react-router'
-import { PLAYER_NAME_MAX_LENGTH, selectPlayerName } from '@/slices/player_slice'
-import type { Dispatch } from '@/stores/store'
-import LoginThunk from '@/thunks/LoginThunk'
-import GameFooter from '@/components/shared/GameFooter.tsx'
+'use client'
 
+import { useState, type SubmitEvent } from 'react'
+import { useRouter } from 'next/navigation'
+import Cookies from 'js-cookie'
+import { PLAYER_COOKIE, PLAYER_NAME_MAX_LENGTH } from '@/src/slices/player_slice'
+import GameFooter from '@/components/shared/GameFooter'
+
+/**
+ * Renders the login form, where the player chooses the name used in the game.
+ */
 export default function Login() {
-  const dispatch: Dispatch = useDispatch()
-  const navigate = useNavigate()
-  const storedName: string | undefined = useSelector(selectPlayerName)
-  const [playerName, setPlayerName] = useState<string>(storedName ?? '')
+  const router = useRouter()
+  const [playerName, setPlayerName] = useState<string>('')
   const [message, setMessage] = useState<string>('')
 
   function login(event: SubmitEvent<HTMLFormElement>): void {
     event.preventDefault()
 
-    if (playerName.trim() === '') {
+    const chosenName: string = playerName.trim().toLowerCase()
+    if (chosenName === '') {
       setMessage('Please enter a name')
       return
     }
 
-    void dispatch(LoginThunk(playerName, navigate))
+    Cookies.set(PLAYER_COOKIE, chosenName, { sameSite: 'lax' })
+    router.push('/lobby')
   }
 
   return (
