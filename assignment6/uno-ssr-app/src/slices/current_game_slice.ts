@@ -18,6 +18,9 @@ export type JoinedGame = {
 
 const init_state: CurrentGameState = { game: undefined, password: undefined, localPlayerId: undefined }
 
+/** A cookie that has the current game's password. Required for F5 page updates to work. */
+export const GAME_PASSWORD_COOKIE: string = 'gamePassword'
+
 const current_game_reducers = {
   gameJoined(_state: CurrentGameState, action: PayloadAction<JoinedGame>): CurrentGameState {
     return action.payload

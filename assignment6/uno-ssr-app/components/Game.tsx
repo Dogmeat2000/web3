@@ -1,10 +1,11 @@
+'use client'
+
 import type { Dispatch } from '@/src/stores/store'
 import { useDispatch, useSelector } from 'react-redux'
 import type {PublicGame, RoundResult} from '@domain/model/uno.dto'
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import { useRouter } from "next/navigation";
-import { selectPlayerName } from "@/src/slices/player_slice"
-import {selectGame, selectGamePassword, selectLocalPlayerId} from "@/src/slices/current_game_slice";
+import {current_game_slice, JoinedGame, selectGame, selectGamePassword, selectLocalPlayerId} from "@/src/slices/current_game_slice";
 import { standardShuffler } from "@domain/utils/random_utils"
 import * as Round from '@domain/model/round'
 import {Card, Color} from "@domain/model/deck";
@@ -22,30 +23,34 @@ import PlayerHand from "@/components/game/PlayerHand";
 import ColorPicker from "@/components/game/ColorPicker";
 import ScoreBoard from "@/components/game/ScoreBoard";
 import {useBots} from "@/bots/useBots";
+import LiveUpdateGameThunk from "@/src/thunks/LiveUpdateGameThunk";
 
 /**
  * Renders the Game page, where the players play the game.
  */
-export default function Host() {
+export default function Game({ joinedGame }: { joinedGame: JoinedGame }) {
     const dispatch: Dispatch = useDispatch()
     const router = useRouter()
-
-    const playerName: string | undefined = useSelector(selectPlayerName)
-    const game: PublicGame | undefined = useSelector(selectGame)
-    const password: string | undefined = useSelector(selectGamePassword)
-    const localPlayerId: number | undefined = useSelector(selectLocalPlayerId)
+    const storedGame: PublicGame | undefined = useSelector(selectGame)
+    const game: PublicGame = storedGame ?? joinedGame.game
+    const password: string = useSelector(selectGamePassword) ?? joinedGame.password
+    const localPlayerId: number = useSelector(selectLocalPlayerId) ?? joinedGame.localPlayerId
+    const isStoreEmpty: boolean = storedGame === undefined
     const [pendingWild, setPendingWild] = useState<number | undefined>(undefined)
     const [dismissedRoundScores, setDismissedRoundScores] = useState<number>(game?.lastRound?.roundsPlayed ?? 0)
 
     // The round that just ended. Its scoreboard is shown in every browser, until it is closed there.
-    const roundResult: RoundResult | undefined = game?.lastRound != null && game.lastRound.roundsPlayed > dismissedRoundScores ? game.lastRound : undefined
+    const roundResult: RoundResult | undefined = game.lastRound != null && game.lastRound.roundsPlayed > dismissedRoundScores ? game.lastRound : undefined
 
     // Bots run on the host player's browser. They are paused between rounds.
     useBots(roundResult !== undefined)
 
-    if (game === undefined || localPlayerId === undefined) {
-        return <main>Loading game…</main>
-    }
+    useEffect((): void => {
+        if (isStoreEmpty) {
+            dispatch(current_game_slice.actions.gameJoined(joinedGame))
+            dispatch(LiveUpdateGameThunk({ name: joinedGame.game.name, password: joinedGame.password }))
+        }
+    }, [dispatch, joinedGame, isStoreEmpty])
 
     const seatingPriority = [3, 4, 5, 6, 7, 8, 9, 10, 1, 2]
     const round: Round.Round | undefined = game.currentRound != null ? { ...game.currentRound, shuffler: standardShuffler } : undefined

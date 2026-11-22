@@ -50,7 +50,7 @@ export async function fetchGame({ name, password }: GameCredentials): Promise<Pu
     )
     { ${gameFields} }
   }`
-  const { data } = await apolloClient.query({ query, variables: { name, password }, fetchPolicy: 'network-only' })
+  const { data } = await apolloClient.query({ query, variables: { name, password }, fetchPolicy: 'no-cache' })
   const answer = data as { game: PublicGame }
   return answer.game
 }

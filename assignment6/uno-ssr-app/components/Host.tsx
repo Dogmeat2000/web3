@@ -1,8 +1,10 @@
+'use client'
+
 import type { Dispatch } from '@/src/stores/store'
 import { useDispatch, useSelector } from 'react-redux'
 import type { GameCredentials, GameSettings } from '@domain/model/uno.dto.ts'
 import { selectPendingCredentials } from '@/src/slices/pending_game_slice'
-import { useState, type SubmitEvent } from 'react'
+import {useState, type SubmitEvent, useEffect} from 'react'
 import { useRouter } from "next/navigation";
 import { SettingsErrors, validateGameSettings } from "@/models/GameSettings";
 import HostThunk from "@/src/thunks/HostThunk";
@@ -19,6 +21,13 @@ export default function Host() {
   const router = useRouter()
   const pendingCredentials: GameCredentials | undefined = useSelector(selectPendingCredentials)
   const [isHosting, setIsHosting] = useState<boolean>(false)
+
+  useEffect((): void => {
+    if (pendingCredentials === undefined && !isHosting) {
+      // Redirect players back to the lobby page, if they tried accessing this endpoint without setting game name and password.
+      router.replace('/lobby')
+    }
+  }, [pendingCredentials, router, isHosting])
 
   const [gameSettings, setGameSettings] = useState<GameSettings>({
     name: pendingCredentials?.name ?? '',
@@ -62,6 +71,8 @@ export default function Host() {
         <Link href="/lobby" className="modal__close" aria-label="Back to lobby">
           ×
         </Link>
+
+
 
         <h1 className="modal__title" id="host-title">
           Host New Game

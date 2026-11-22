@@ -1,11 +1,12 @@
 import { hostGame } from '@/src/graphql/gameConnection'
-import { current_game_slice } from '@/src/slices/current_game_slice'
+import {current_game_slice, GAME_PASSWORD_COOKIE} from '@/src/slices/current_game_slice'
 import { pending_game_slice } from '@/src/slices/pending_game_slice'
 import { selectPlayerName } from '@/src/slices/player_slice'
 import type { Dispatch, GetState } from '@/src/stores/store'
 import LiveUpdateGameThunk from '@/src/thunks/LiveUpdateGameThunk'
 import type { GameSettings, PublicGame } from '@domain/model/uno.dto.ts'
 import { useRouter } from "next/navigation";
+import Cookies from 'js-cookie'
 
 type Router = ReturnType<typeof useRouter>
 
@@ -25,6 +26,7 @@ export default function HostThunk(gameSettings: GameSettings, router: Router): (
     // The host is always the first player.
     dispatch(current_game_slice.actions.gameJoined({ game: hostedGame, password: gameSettings.password, localPlayerId: 0 }))
     dispatch(LiveUpdateGameThunk(gameSettings))
+    Cookies.set(GAME_PASSWORD_COOKIE, gameSettings.password, { sameSite: 'lax' })
 
     router.push(`/game/${hostedGame.name}`)
     dispatch(pending_game_slice.actions.hostCleared())

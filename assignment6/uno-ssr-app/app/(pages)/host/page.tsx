@@ -1,9 +1,7 @@
-'use client'
-
 import Host from "@/components/Host";
 
 /**
- * The static Host page
+ * The dynamic Host page
  */
 export default function HostPage() {
     return <Host />
