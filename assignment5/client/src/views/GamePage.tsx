@@ -77,6 +77,7 @@ export default function GamePage() {
   const continueToNextRound = (): void => {
     setDismissedRoundScores(game.lastRound?.roundsPlayed ?? 0)
   }
+
   const exitGame = (): void => {
     void navigate('/lobby')
   }

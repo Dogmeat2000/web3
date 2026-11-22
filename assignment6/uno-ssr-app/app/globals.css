@@ -309,6 +309,7 @@ html, body {
   grid-column: 1 / -1;
   display: block;
   width: 100%;
+  height: auto;
   aspect-ratio: 1;
   border-radius: 0.6cqw;      /* same corner as the player card it sits in */
   object-fit: cover;
@@ -331,7 +332,7 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
-.player__cards img { width: 1.1cqw; }
+.player__cards img { width: 1.1cqw; height: auto; }
 
 /* "Playing" / "Next" chip, so the state isn't shown by colour alone */
 .player__tag {
@@ -427,6 +428,7 @@ html, body {
 .pile img {
   display: block;
   width: 100%;
+  height: auto;
   filter: drop-shadow(0 0.3cqw 0.5cqw rgba(0, 0, 0, 0.6));
 }
 
@@ -588,6 +590,7 @@ html, body {
 .hand__card img {
   display: block;
   width: var(--card-width);
+  height: auto;
   filter: drop-shadow(-0.2cqw 0.2cqw 0.4cqw rgba(0, 0, 0, 0.55));
 }
 
