@@ -1,4 +1,4 @@
-import { type PubSub, withFilter } from 'graphql-subscriptions'
+import { type PubSub } from 'graphql-subscriptions'
 import type { Color } from '@domain/model/deck.ts'
 import type { GameCredentials, GameSettings, PublicGame } from '@domain/model/uno.dto.ts'
 import type { StoredGame } from './game-store.ts'
@@ -16,12 +16,17 @@ function toPublicGame(game: StoredGame): PublicGame {
     return publicGame
 }
 
+/** Returns the PubSub event of the provided game, so an update only reaches the players in that game. */
+function gameTrigger(gameId: string): string {
+    return `${GAME_UPDATED}.${gameId}`
+}
+
 export function createGameResolvers(model: GameApi, pubsub: PubSub) {
 
     async function publish(change: Promise<StoredGame>): Promise<PublicGame> {
         const game: PublicGame = toPublicGame(await change)
         const update: GameUpdate = { gameUpdated: game }
-        await pubsub.publish(GAME_UPDATED, update)
+        await pubsub.publish(gameTrigger(game.id), update)
         return game
     }
 
@@ -75,11 +80,7 @@ export function createGameResolvers(model: GameApi, pubsub: PubSub) {
             gameUpdated: {
                 subscribe: async (_: unknown, args: GameCredentials) => {
                     const watched: StoredGame = await model.fetchGame(args.name, args.password)
-                    const updates = withFilter<GameUpdate>(() =>
-                            pubsub.asyncIterableIterator<GameUpdate>([GAME_UPDATED]),
-                        (payload: GameUpdate | undefined): boolean => payload?.gameUpdated.id === watched.id,
-                    )
-                    return updates()
+                    return pubsub.asyncIterableIterator<GameUpdate>([gameTrigger(watched.id)])
                 },
             },
         },

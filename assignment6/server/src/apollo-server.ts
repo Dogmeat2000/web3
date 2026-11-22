@@ -5,6 +5,7 @@ import { makeExecutableSchema } from '@graphql-tools/schema'
 import { useServer } from 'graphql-ws/use/ws'
 import { WebSocketServer } from 'ws'
 import { PubSub } from 'graphql-subscriptions'
+import { EventEmitter } from 'events'
 
 import express from 'express'
 import bodyParser from 'body-parser'
@@ -26,7 +27,10 @@ const __dirname: string = path.dirname(__filename)
 async function startServer(store: GameStore): Promise<void> {
     const port: number = Number(process.env.GRAPHQL_PORT ?? 4000)
     const model: GameApi = createGameApi(store, { shuffler: standardShuffler, randomizer: standardRandomizer })
-    const pubsub = new PubSub()
+
+    const eventEmitter: EventEmitter = new EventEmitter()
+    eventEmitter.setMaxListeners(0)
+    const pubsub = new PubSub({ eventEmitter })
 
     try {
         const content: string = await fs.readFile(path.join(__dirname, 'schema.graphql'), 'utf8')
