@@ -5,7 +5,7 @@ type ColorPickerProps = {
 }
 
 /**
- * Renders the cards on the local players hand.
+ * Renders the Color Picker used to choose a color for special cards.
  */
 export default function ColorPicker({ onChoose }: ColorPickerProps) {
     return (

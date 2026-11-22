@@ -19,6 +19,8 @@ import {getCardUrl} from "@/helpers/cardUrlHelper";
 import Image from 'next/image'
 import PlayerAvatarCard from "@/components/game/PlayerAvatarCard";
 import PlayerHand from "@/components/game/PlayerHand";
+import ColorPicker from "@/components/game/ColorPicker";
+import ScoreBoard from "@/components/game/ScoreBoard";
 
 /**
  * Renders the Game page, where the players play the game.
@@ -203,7 +205,7 @@ export default function Host() {
                 {pendingWild !== undefined && <ColorPicker onChoose={chooseColor} />}
 
                 {/* End of a round. */}
-                {roundResult !== undefined && winner === undefined /*&& (
+                {roundResult !== undefined && winner === undefined && (
                     <ScoreBoard
                         title="Round Winner"
                         headline={game.playerNames[roundResult.winner] ?? ''}
@@ -213,10 +215,10 @@ export default function Host() {
                         gained={roundResult.addedScore}
                         onClose={continueToNextRound}
                     />
-                )*/}
+                )}
 
                 {/* End of the game. */}
-                {winner !== undefined /*&& <ScoreBoard title="Game Over" headline={`Winner: ${winner.playerName}`} buttonLabel="Exit" rows={scoreRows} winnerId={winner.playerId} onClose={exitGame} />*/}
+                {winner !== undefined && <ScoreBoard title="Game Over" headline={`Winner: ${winner.playerName}`} buttonLabel="Exit" rows={scoreRows} winnerId={winner.playerId} onClose={exitGame} />}
             </div>
         </main>
     )
