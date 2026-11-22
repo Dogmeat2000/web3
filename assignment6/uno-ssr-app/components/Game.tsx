@@ -200,7 +200,7 @@ export default function Host() {
                 {round !== undefined && <PlayerHand cards={myCards} playables={myPlayableCardsAtIndex} onPlay={playCard}></PlayerHand>}
 
                 {/* Choosing a color after playing a Wild card. */}
-                {pendingWild !== undefined /*&& <ColorPicker onChoose={chooseColor} />*/}
+                {pendingWild !== undefined && <ColorPicker onChoose={chooseColor} />}
 
                 {/* End of a round. */}
                 {roundResult !== undefined && winner === undefined /*&& (
