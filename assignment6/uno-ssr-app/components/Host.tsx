@@ -5,7 +5,7 @@ import { selectPendingCredentials } from '@/src/slices/pending_game_slice'
 import { useState, type SubmitEvent } from 'react'
 import { useRouter } from "next/navigation";
 import { SettingsErrors, validateGameSettings } from "@/models/GameSettings";
-import HostThunk from "@/thunks/HostThunk";
+import HostThunk from "@/src/thunks/HostThunk";
 import Link from "next/link";
 import GameFooter from "@/components/shared/GameFooter";
 

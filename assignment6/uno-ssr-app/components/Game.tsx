@@ -10,17 +10,18 @@ import * as Round from '@domain/model/round'
 import {Card, Color} from "@domain/model/deck";
 import {Player} from "@domain/model/player";
 import {ScoreRow} from "@/models/ScoreRow";
-import DrawThunk from "@/thunks/DrawThunk";
-import StartGameThunk from "@/thunks/StartGameThunk"
-import PlayCardThunk from "@/thunks/PlayCardThunk";
-import SayUnoThunk from "@/thunks/SayUnoThunk";
-import CatchUnoThunk from "@/thunks/CatchUnoThunk";
+import DrawThunk from "@/src/thunks/DrawThunk";
+import StartGameThunk from "@/src/thunks/StartGameThunk"
+import PlayCardThunk from "@/src/thunks/PlayCardThunk";
+import SayUnoThunk from "@/src/thunks/SayUnoThunk";
+import CatchUnoThunk from "@/src/thunks/CatchUnoThunk";
 import {getCardUrl} from "@/helpers/cardUrlHelper";
 import Image from 'next/image'
 import PlayerAvatarCard from "@/components/game/PlayerAvatarCard";
 import PlayerHand from "@/components/game/PlayerHand";
 import ColorPicker from "@/components/game/ColorPicker";
 import ScoreBoard from "@/components/game/ScoreBoard";
+import {useBots} from "@/bots/useBots";
 
 /**
  * Renders the Game page, where the players play the game.
@@ -40,7 +41,7 @@ export default function Host() {
     const roundResult: RoundResult | undefined = game?.lastRound != null && game.lastRound.roundsPlayed > dismissedRoundScores ? game.lastRound : undefined
 
     // Bots run on the host player's browser. They are paused between rounds.
-    //useBots(roundResult !== undefined)
+    useBots(roundResult !== undefined)
 
     if (game === undefined || localPlayerId === undefined) {
         return <main>Loading game…</main>

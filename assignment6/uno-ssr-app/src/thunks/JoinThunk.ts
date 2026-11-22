@@ -2,7 +2,7 @@ import { fetchGame, joinGame } from '@/src/graphql/gameConnection'
 import { current_game_slice } from '@/src/slices/current_game_slice'
 import { selectPlayerName } from '@/src/slices/player_slice'
 import type { Dispatch, GetState } from '@/src/stores/store'
-import LiveUpdateGameThunk from '@/thunks/LiveUpdateGameThunk'
+import LiveUpdateGameThunk from '@/src/thunks/LiveUpdateGameThunk'
 import type { GameCredentials, PublicGame } from '@domain/model/uno.dto.ts'
 import { useRouter } from "next/navigation";
 

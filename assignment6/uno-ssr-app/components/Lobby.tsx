@@ -10,8 +10,8 @@ import { selectPendingCredentials } from "@/src/slices/pending_game_slice"
 import Link from "next/link";
 import {CredentialErrors, GAME_NAME_MAX_LENGTH, validateCredentials} from "@/models/GameSettings";
 import {Dispatch} from "@/src/stores/store";
-import JoinThunk from "@/thunks/JoinThunk";
-import PrepareHostThunk from "@/thunks/PrepareHostThunk";
+import JoinThunk from "@/src/thunks/JoinThunk";
+import PrepareHostThunk from "@/src/thunks/PrepareHostThunk";
 
 /**
  * Renders the Lobby form, where the players can connect to games, or host their own.
