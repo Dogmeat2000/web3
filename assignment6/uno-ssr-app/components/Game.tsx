@@ -18,6 +18,7 @@ import CatchUnoThunk from "@/thunks/CatchUnoThunk";
 import {getCardUrl} from "@/helpers/cardUrlHelper";
 import Image from 'next/image'
 import PlayerAvatarCard from "@/components/game/PlayerAvatarCard";
+import PlayerHand from "@/components/game/PlayerHand";
 
 /**
  * Renders the Game page, where the players play the game.
@@ -196,7 +197,7 @@ export default function Host() {
                 </p>
 
                 {/* Show the Local Players' cards */}
-                {round !== undefined /*&& <PlayerHand cards={myCards} playables={myPlayableCardsAtIndex} onPlay={playCard}></PlayerHand>*/}
+                {round !== undefined && <PlayerHand cards={myCards} playables={myPlayableCardsAtIndex} onPlay={playCard}></PlayerHand>}
 
                 {/* Choosing a color after playing a Wild card. */}
                 {pendingWild !== undefined /*&& <ColorPicker onChoose={chooseColor} />*/}

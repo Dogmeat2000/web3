@@ -15,7 +15,7 @@ type PlayerAvatarCardProps = {
 }
 
 /**
- * Renders the footer.
+ * Renders a Player's Avatar card.
  */
 export default function PlayerAvatarCard({ playerId, playerName, cardCount, score, isTurn, isNext, isLocalPlayer, isBot, hasSaidUno, hasSaidThisColor }: PlayerAvatarCardProps) {
   const avatar: string = `/avatars/Profile${playerId + 1}.webp`
